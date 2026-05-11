@@ -1,0 +1,35 @@
+/* ─────────────────────────────────────────────────────────────
+   LAYOUT — Sidebar + Header + Main Content shell
+   ───────────────────────────────────────────────────────────── */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.layout-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left var(--transition-slow);
+}
+
+.layout-content {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-x: hidden;
+}
+
+@media (max-width: 1024px) {
+  .layout-main {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .layout-content {
+    padding: var(--space-4);
+  }
+}

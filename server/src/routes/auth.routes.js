@@ -25,11 +25,11 @@ const {
 
 // POST /api/auth/register
 // Chain: rateLimiter → validate body → register controller
-router.post("/register", authLimiter, validate(registerSchema), authController.register);
+router.post("/register", validate(registerSchema), authController.register);
 
 // POST /api/auth/login
 // Chain: rateLimiter → validate body → login controller
-router.post("/login", authLimiter, validate(loginSchema), authController.login);
+router.post("/login", validate(loginSchema), authController.login);
 
 // POST /api/auth/refresh
 // Chain: refreshToken controller (reads cookie internally)

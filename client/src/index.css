@@ -1,0 +1,210 @@
+/* ─────────────────────────────────────────────────────────────
+   SSMS Design System — Neo-Brutalism (Indigo × Lime)
+   
+   DESIGN TOKENS:
+   All colors, spacing, typography, and shadows are defined as
+   CSS custom properties for consistency and dark mode support.
+   ───────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ── CSS RESET ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── DESIGN TOKENS (Light Mode) ─────────────────────────────── */
+:root {
+  /* Primary Palette */
+  --color-primary: #27187E;
+  --color-accent: #89E900;
+  --color-danger: #FF3E6C;
+  --color-teal: #004643;
+  --color-plum: #381932;
+
+  /* Surfaces */
+  --color-bg: #F7F7FF;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F0EDE5;
+  --color-sidebar: #27187E;
+
+  /* Text */
+  --color-text: #1a1a2e;
+  --color-text-secondary: #555566;
+  --color-text-muted: #8888a0;
+  --color-text-on-primary: #FFFFFF;
+  --color-text-on-accent: #000000;
+
+  /* Borders & Shadows (Neo-Brutalism) */
+  --border-color: #000000;
+  --border-width: 2px;
+  --shadow-offset: 4px;
+  --shadow-brutal: var(--shadow-offset) var(--shadow-offset) 0px var(--border-color);
+  --shadow-brutal-lg: 6px 6px 0px var(--border-color);
+  --shadow-brutal-hover: 6px 6px 0px var(--border-color);
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.8125rem;  /* 13px */
+  --font-size-base: 0.875rem; /* 14px */
+  --font-size-md: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.5rem;     /* 24px */
+  --font-size-2xl: 2rem;      /* 32px */
+  --font-size-3xl: 2.5rem;    /* 40px */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+  --line-height: 1.5;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Border Radius (Brutalism = 0, but subtle for some elements) */
+  --radius-none: 0px;
+  --radius-sm: 2px;
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 72px;
+  --header-height: 64px;
+
+  /* Z-Index Scale */
+  --z-sidebar: 100;
+  --z-header: 90;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+}
+
+/* ── DARK MODE TOKENS ───────────────────────────────────────── */
+[data-theme="dark"] {
+  --color-primary: #5A43D1; /* Brighter Indigo for dark mode */
+  --color-accent: #89E900;  /* Keep Lime green as accent */
+  
+  --color-bg: #12101F;
+  --color-surface: #1C1930;
+  --color-surface-alt: #282442;
+  --color-sidebar: #151326;
+
+  --color-text: #F7F7FF;
+  --color-text-secondary: #C0C0D6;
+  --color-text-muted: #84849A;
+  
+  --color-text-on-primary: #FFFFFF;
+  --color-text-on-accent: #000000;
+
+  /* Muted borders with pitch black solid shadows for Brutalism */
+  --border-color: #3E3B5C;
+  --shadow-brutal: var(--shadow-offset) var(--shadow-offset) 0px #000000;
+  --shadow-brutal-lg: 6px 6px 0px #000000;
+  --shadow-brutal-hover: 6px 6px 0px #89E900; /* Lime shadow on hover */
+}
+
+/* ── BASE STYLES ────────────────────────────────────────────── */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-slow), color var(--transition-slow);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── TYPOGRAPHY ─────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--color-text);
+}
+h1 { font-size: var(--font-size-3xl); font-weight: var(--font-weight-black); }
+h2 { font-size: var(--font-size-2xl); font-weight: var(--font-weight-black); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+
+p { margin-bottom: var(--space-4); }
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover { text-decoration: underline; }
+
+/* ── FOCUS / ACCESSIBILITY ──────────────────────────────────── */
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Skip to main content link (accessibility) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--border-color);
+  font-weight: var(--font-weight-bold);
+  z-index: var(--z-toast);
+  transition: top var(--transition-fast);
+}
+.skip-link:focus { top: var(--space-4); }
+
+/* ── SCROLLBAR (Brutalist) ──────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border: 1px solid var(--border-color);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+
+/* ── UTILITY CLASSES ────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* ── RESPONSIVE BREAKPOINTS REFERENCE ───────────────────────
+   Mobile:  < 640px
+   Tablet:  640px – 1024px
+   Desktop: > 1024px
+   ─────────────────────────────────────────────────────────── */

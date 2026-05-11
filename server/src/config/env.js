@@ -41,7 +41,9 @@ const env = {
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || "7d",
   },
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",")
+      : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
   },
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
   isDev: process.env.NODE_ENV === "development",

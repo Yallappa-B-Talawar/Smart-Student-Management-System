@@ -1,0 +1,133 @@
+/* ─────────────────────────────────────────────────────────────
+   DASHBOARD — Page-specific styles
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Welcome Banner ── */
+.welcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.welcome-text h2 {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--space-1);
+}
+.welcome-text p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  margin-bottom: 0;
+}
+.welcome-date {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--border-color);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-brutal);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Activity List ── */
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-surface-alt);
+  transition: background var(--transition-fast);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-item:hover { background: var(--color-surface-alt); }
+
+.activity-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-black);
+  font-size: var(--font-size-sm);
+  border: var(--border-width) solid var(--border-color);
+  flex-shrink: 0;
+}
+.activity-info { flex: 1; min-width: 0; }
+.activity-name {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+}
+.activity-action {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+.activity-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+.activity-time {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ── Events ── */
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-surface-alt);
+  transition: background var(--transition-fast);
+}
+.event-item:last-child { border-bottom: none; }
+.event-item:hover { background: var(--color-surface-alt); }
+
+.event-date-box {
+  width: 48px;
+  height: 48px;
+  border: var(--border-width) solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 2px 2px 0px var(--border-color);
+}
+.event-date-box.exam { background: var(--color-danger); color: #fff; }
+.event-date-box.meeting { background: var(--color-primary); color: var(--color-text-on-primary); }
+.event-date-box.event { background: var(--color-accent); color: #000; }
+
+.event-day {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-black);
+  line-height: 1;
+}
+.event-month {
+  font-size: 9px;
+  text-transform: uppercase;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 1px;
+}
+.event-info { flex: 1; }
+.event-title {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+}
+.event-type { margin-top: var(--space-1); }
+
+/* ── Mobile Adjustments ── */
+@media (max-width: 640px) {
+  .welcome-text h2 { font-size: var(--font-size-xl); }
+  .activity-meta { display: none; }
+}

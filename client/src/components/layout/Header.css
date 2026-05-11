@@ -1,0 +1,165 @@
+/* ─────────────────────────────────────────────────────────────
+   HEADER — Top bar with search, dark mode toggle, mobile menu
+   ───────────────────────────────────────────────────────────── */
+
+.header {
+  position: sticky;
+  top: 0;
+  height: var(--header-height);
+  background: var(--color-surface);
+  border-bottom: var(--border-width) solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  gap: var(--space-4);
+  z-index: var(--z-header);
+  transition: background-color var(--transition-slow);
+}
+
+/* ── Left: Mobile menu + Page title ── */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header-menu-btn {
+  display: none;
+  background: none;
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--border-color);
+  padding: var(--space-2);
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 20px;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+.header-menu-btn:hover {
+  background: var(--color-accent);
+  color: #000;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--border-color);
+}
+
+.header-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-black);
+  letter-spacing: -0.5px;
+}
+
+/* ── Center: Search ── */
+.header-search {
+  flex: 1;
+  max-width: 420px;
+  position: relative;
+}
+.header-search-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-10);
+  border: var(--border-width) solid var(--border-color);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-fast);
+}
+.header-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+.header-search-input:focus {
+  outline: none;
+  box-shadow: var(--shadow-brutal);
+  background: var(--color-surface);
+}
+.header-search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* ── Right: Actions ── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header-btn {
+  background: none;
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--border-color);
+  padding: var(--space-2);
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 18px;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  position: relative;
+}
+.header-btn:hover {
+  background: var(--color-accent);
+  color: #000;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--border-color);
+}
+
+.header-btn .notification-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-danger);
+  border: 1px solid var(--border-color);
+}
+
+.header-avatar {
+  width: 36px;
+  height: 36px;
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--border-color);
+  background: var(--color-accent);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-black);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.header-avatar:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--border-color);
+}
+
+/* Dark mode toggle specific styling */
+.theme-toggle {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+[data-theme="dark"] .theme-toggle {
+  background: var(--color-accent);
+  color: #000;
+}
+
+/* ── Mobile ── */
+@media (max-width: 1024px) {
+  .header-menu-btn { display: flex; }
+  .header-search { display: none; }
+}
+
+@media (max-width: 640px) {
+  .header { padding: 0 var(--space-4); }
+  .header-title { font-size: var(--font-size-md); }
+}

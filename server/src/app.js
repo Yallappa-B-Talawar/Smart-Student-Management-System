@@ -74,10 +74,13 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 
 // 6. MONGO SANITIZE — Prevent NoSQL injection attacks
-//    Removes $ and . from req.body, req.query, req.params
-//    Without this, attackers could send: { "email": { "$gt": "" } }
-//    Which would match ALL users in MongoDB
-app.use(mongoSanitize());
+//    Removes $ and . from req.body, req.params
+//    Express v5 makes req.query read-only, so we sanitize manually
+app.use((req, res, next) => {
+  if (req.body) req.body = mongoSanitize.sanitize(req.body);
+  if (req.params) req.params = mongoSanitize.sanitize(req.params);
+  next();
+});
 
 // 7. MORGAN — HTTP request logger (development only)
 //    Logs: GET /api/auth/login 200 15ms

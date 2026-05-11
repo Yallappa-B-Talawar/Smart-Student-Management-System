@@ -29,7 +29,7 @@ const env = require("../config/env");
 const cookieOptions = {
   httpOnly: true,           // JS cannot access (XSS protection)
   secure: env.isProd,       // HTTPS only in production
-  sameSite: "strict",       // Don't send cookie on cross-site requests (CSRF protection)
+  sameSite: "lax",          // 'lax' allows cross-port cookies in local dev
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 };
 

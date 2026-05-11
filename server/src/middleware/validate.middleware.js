@@ -35,35 +35,22 @@ const ApiError = require("../utils/ApiError");
  * 5. If invalid → throw ApiError with 400 status and error details
  */
 const validate = (schema) => {
-  // This returned function IS the actual middleware Express will use
   return (req, res, next) => {
-    // schema.validate() checks req.body against the Joi rules
-    // Options:
-    //   abortEarly: false → collect ALL errors, not just the first one
-    //   stripUnknown: true → silently remove fields not in the schema
-    //                         (security: prevents extra malicious fields)
     const { error, value } = schema.validate(req.body, {
       abortEarly: false,
       stripUnknown: true,
     });
 
-    // If validation failed, Joi provides error.details array
     if (error) {
-      // Map Joi's error format to our clean API format
       const errorMessages = error.details.map((detail) => ({
-        field: detail.path.join("."),   // e.g., "email" or "address.city"
-        message: detail.message,        // e.g., "Email is required"
+        field: detail.path.join("."),
+        message: detail.message,
       }));
-
-      // Throw our custom ApiError — caught by error.middleware.js
-      throw new ApiError(400, "Validation failed", errorMessages);
+      // Use next() instead of throw — works reliably in all Express versions
+      return next(new ApiError(400, "Validation failed", errorMessages));
     }
 
-    // Replace req.body with the validated + cleaned value
-    // This means the controller receives ONLY valid, sanitized data
     req.body = value;
-
-    // Proceed to the next middleware/controller
     next();
   };
 };

@@ -10,20 +10,15 @@ const express = require("express");
 const router = express.Router();
 
 // ── Import all route modules ───────────────────────────────
-// Each file handles one resource (auth, students, teachers...)
 const authRoutes = require("./auth.routes");
+const studentRoutes = require("./student.routes");
+const teacherRoutes = require("./teacher.routes");
+const attendanceRoutes = require("./attendance.routes");
 
 // ── Mount routes with their URL prefix ─────────────────────
-// All auth endpoints will be at: /api/auth/...
 router.use("/auth", authRoutes);
-
-// TODO: Add these as we build each module:
-// router.use("/students", studentRoutes);
-// router.use("/teachers", teacherRoutes);
-// router.use("/attendance", attendanceRoutes);
-// router.use("/marks", markRoutes);
-// router.use("/assignments", assignmentRoutes);
-// router.use("/notifications", notificationRoutes);
-// router.use("/dashboard", dashboardRoutes);
+router.use("/students", studentRoutes);
+router.use("/teachers", teacherRoutes);
+router.use("/attendance", attendanceRoutes);
 
 module.exports = router;

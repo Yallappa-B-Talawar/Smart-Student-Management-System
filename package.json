@@ -1,0 +1,13 @@
+{
+  "name": "smart-student-management-system",
+  "version": "1.0.0",
+  "description": "Smart Student Management System — Full Stack",
+  "private": true,
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && npm install",
+    "install:all": "npm run install:client && npm run install:server"
+  }
+}
