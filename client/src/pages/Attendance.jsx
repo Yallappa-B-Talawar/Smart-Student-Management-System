@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { HiOutlineCheck, HiOutlineX, HiOutlineClock } from 'react-icons/hi';
 import { attendanceAPI, studentsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
 
 export default function Attendance() {
+  const { user } = useAuth();
+  const canMark = user?.role === 'admin' || user?.role === 'teacher';
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState([]);
@@ -73,7 +76,7 @@ export default function Attendance() {
           <h2 className="section-title">Attendance</h2>
           <p className="section-subtitle">Mark and manage daily attendance</p>
         </div>
-        <button className="btn btn-primary" onClick={saveAttendance}>Save Attendance</button>
+        {canMark && <button className="btn btn-primary" onClick={saveAttendance}>Save Attendance</button>}
       </div>
 
       <div className="grid-stats section" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -130,11 +133,15 @@ export default function Attendance() {
                     <span className={`badge ${s.status === 'present' ? 'badge-accent' : s.status === 'absent' ? 'badge-danger' : s.status === 'late' ? 'badge-primary' : 'badge-outline'}`}>{s.status}</span>
                   </td>
                   <td data-label="Actions">
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button className={`btn btn-sm ${s.status === 'present' ? 'btn-accent' : 'btn-outline'}`} onClick={() => updateStatus(s._id, 'present')} aria-label={`Mark ${s.name} present`}><HiOutlineCheck /></button>
-                      <button className={`btn btn-sm ${s.status === 'absent' ? 'btn-danger' : 'btn-outline'}`} onClick={() => updateStatus(s._id, 'absent')} aria-label={`Mark ${s.name} absent`}><HiOutlineX /></button>
-                      <button className={`btn btn-sm ${s.status === 'late' ? 'btn-primary' : 'btn-outline'}`} onClick={() => updateStatus(s._id, 'late')} aria-label={`Mark ${s.name} late`}><HiOutlineClock /></button>
-                    </div>
+                    {canMark ? (
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button className={`btn btn-sm ${s.status === 'present' ? 'btn-accent' : 'btn-outline'}`} onClick={() => updateStatus(s._id, 'present')} aria-label={`Mark ${s.name} present`}><HiOutlineCheck /></button>
+                        <button className={`btn btn-sm ${s.status === 'absent' ? 'btn-danger' : 'btn-outline'}`} onClick={() => updateStatus(s._id, 'absent')} aria-label={`Mark ${s.name} absent`}><HiOutlineX /></button>
+                        <button className={`btn btn-sm ${s.status === 'late' ? 'btn-primary' : 'btn-outline'}`} onClick={() => updateStatus(s._id, 'late')} aria-label={`Mark ${s.name} late`}><HiOutlineClock /></button>
+                      </div>
+                    ) : (
+                      <span className={`badge ${s.status === 'present' ? 'badge-accent' : s.status === 'absent' ? 'badge-danger' : s.status === 'late' ? 'badge-primary' : 'badge-outline'}`}>{s.status}</span>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -10,20 +10,33 @@ import {
 } from 'react-icons/hi';
 import './Sidebar.css';
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: HiOutlineViewGrid },
-  { path: '/students', label: 'Students', icon: HiOutlineUserGroup },
-  { path: '/teachers', label: 'Teachers', icon: HiOutlineAcademicCap },
-  { path: '/attendance', label: 'Attendance', icon: HiOutlineClipboardCheck },
-];
-
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
+  const role = user?.role;
 
   const handleLogout = async () => {
     await logout();
     onClose();
   };
+
+  // Build nav items based on role
+  const navItems = [];
+
+  // Dashboard — everyone
+  navItems.push({ path: '/', label: 'Dashboard', icon: HiOutlineViewGrid });
+
+  // Students — admin and teacher can see list, student sees only "My Profile" (via Settings)
+  if (role === 'admin' || role === 'teacher') {
+    navItems.push({ path: '/students', label: 'Students', icon: HiOutlineUserGroup });
+  }
+
+  // Teachers — admin and student can view teacher directory
+  if (role === 'admin' || role === 'student') {
+    navItems.push({ path: '/teachers', label: 'Teachers', icon: HiOutlineAcademicCap });
+  }
+
+  // Attendance — admin and teacher can manage, student can view
+  navItems.push({ path: '/attendance', label: 'Attendance', icon: HiOutlineClipboardCheck });
 
   return (
     <>

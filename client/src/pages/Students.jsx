@@ -7,11 +7,14 @@ import {
   HiOutlineX,
 } from 'react-icons/hi';
 import { studentsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
 
 const emptyForm = { name: '', email: '', rollNo: '', class: '', phone: '', address: '', section: '', parentName: '', parentPhone: '', gender: '' };
 
 export default function Students() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -132,9 +135,11 @@ export default function Students() {
           <h2 className="section-title">Students</h2>
           <p className="section-subtitle">Manage all student records</p>
         </div>
-        <button className="btn btn-accent" onClick={openCreateForm}>
-          <HiOutlinePlus /> Add Student
-        </button>
+        {isAdmin && (
+          <button className="btn btn-accent" onClick={openCreateForm}>
+            <HiOutlinePlus /> Add Student
+          </button>
+        )}
       </div>
 
       {/* ── Create / Edit Form ── */}
@@ -248,8 +253,8 @@ export default function Students() {
                   <td data-label="Actions">
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button className="btn btn-sm btn-ghost" aria-label={`View ${s.name}`} onClick={() => setViewStudent(s)}>👁</button>
-                      <button className="btn btn-sm btn-ghost" aria-label={`Edit ${s.name}`} onClick={() => openEditForm(s)}><HiOutlinePencil /></button>
-                      <button className="btn btn-sm btn-ghost" style={{ color: 'var(--color-danger)' }} aria-label={`Delete ${s.name}`} onClick={() => handleDelete(s._id, s.name)}><HiOutlineTrash /></button>
+                      {isAdmin && <button className="btn btn-sm btn-ghost" aria-label={`Edit ${s.name}`} onClick={() => openEditForm(s)}><HiOutlinePencil /></button>}
+                      {isAdmin && <button className="btn btn-sm btn-ghost" style={{ color: 'var(--color-danger)' }} aria-label={`Delete ${s.name}`} onClick={() => handleDelete(s._id, s.name)}><HiOutlineTrash /></button>}
                     </div>
                   </td>
                 </tr>
@@ -282,7 +287,7 @@ export default function Students() {
                 <div className="detail-item"><span className="detail-label">Admission Date</span><span className="detail-value">{new Date(viewStudent.admissionDate).toLocaleDateString('en-IN')}</span></div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button className="btn btn-primary" onClick={() => { setViewStudent(null); openEditForm(viewStudent); }}>Edit Student</button>
+                {isAdmin && <button className="btn btn-primary" onClick={() => { setViewStudent(null); openEditForm(viewStudent); }}>Edit Student</button>}
                 <button className="btn btn-outline" onClick={() => setViewStudent(null)}>Close</button>
               </div>
             </div>

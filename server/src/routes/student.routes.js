@@ -1,12 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const studentController = require("../controllers/student.controller");
-const { protect } = require("../middleware/auth.middleware");
+const { protect, authorize } = require("../middleware/auth.middleware");
 
+// All routes require authentication
 router.use(protect);
 
+// GET routes — accessible to all roles (admin, teacher, student)
 router.get("/stats", studentController.getStats);
-router.route("/").get(studentController.getAll).post(studentController.create);
-router.route("/:id").get(studentController.getById).put(studentController.update).delete(studentController.remove);
+router.get("/", studentController.getAll);
+router.get("/:id", studentController.getById);
+
+// POST/PUT/DELETE — admin only
+router.post("/", authorize("admin"), studentController.create);
+router.put("/:id", authorize("admin"), studentController.update);
+router.delete("/:id", authorize("admin"), studentController.remove);
 
 module.exports = router;

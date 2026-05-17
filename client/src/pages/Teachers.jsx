@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineX } from 'react-icons/hi';
 import { teachersAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
 
 const emptyForm = { name: '', email: '', subject: '', classes: '', phone: '', qualification: '', experience: '', address: '' };
 
 export default function Teachers() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, active: 0, onLeave: 0 });
@@ -114,7 +117,7 @@ export default function Teachers() {
           <h2 className="section-title">Teachers</h2>
           <p className="section-subtitle">Manage faculty and class assignments</p>
         </div>
-        <button className="btn btn-accent" onClick={openCreateForm}><HiOutlinePlus /> Add Teacher</button>
+        {isAdmin && <button className="btn btn-accent" onClick={openCreateForm}><HiOutlinePlus /> Add Teacher</button>}
       </div>
 
       {/* ── Stats ── */}
@@ -184,8 +187,8 @@ export default function Teachers() {
                   <td data-label="Actions">
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button className="btn btn-sm btn-ghost" aria-label={`View ${t.name}`} onClick={() => setViewTeacher(t)}>👁</button>
-                      <button className="btn btn-sm btn-ghost" aria-label={`Edit ${t.name}`} onClick={() => openEditForm(t)}><HiOutlinePencil /></button>
-                      <button className="btn btn-sm btn-ghost" style={{ color: 'var(--color-danger)' }} aria-label={`Delete ${t.name}`} onClick={() => handleDelete(t._id, t.name)}><HiOutlineTrash /></button>
+                      {isAdmin && <button className="btn btn-sm btn-ghost" aria-label={`Edit ${t.name}`} onClick={() => openEditForm(t)}><HiOutlinePencil /></button>}
+                      {isAdmin && <button className="btn btn-sm btn-ghost" style={{ color: 'var(--color-danger)' }} aria-label={`Delete ${t.name}`} onClick={() => handleDelete(t._id, t.name)}><HiOutlineTrash /></button>}
                     </div>
                   </td>
                 </tr>
@@ -217,7 +220,7 @@ export default function Teachers() {
                 <div className="detail-item"><span className="detail-label">Joined</span><span className="detail-value">{new Date(viewTeacher.joiningDate).toLocaleDateString('en-IN')}</span></div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button className="btn btn-primary" onClick={() => { setViewTeacher(null); openEditForm(viewTeacher); }}>Edit Teacher</button>
+                {isAdmin && <button className="btn btn-primary" onClick={() => { setViewTeacher(null); openEditForm(viewTeacher); }}>Edit Teacher</button>}
                 <button className="btn btn-outline" onClick={() => setViewTeacher(null)}>Close</button>
               </div>
             </div>

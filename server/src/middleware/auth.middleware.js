@@ -76,4 +76,24 @@ const protect = (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+/**
+ * authorize — Restricts access to specific roles
+ *
+ * Usage: authorize("admin", "teacher") → only admin and teacher can proceed
+ * Must be used AFTER protect middleware (needs req.user to exist)
+ *
+ * @param  {...string} roles - Allowed roles (e.g., "admin", "teacher", "student")
+ */
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      throw new ApiError(
+        403,
+        `Access denied. Role '${req.user?.role}' is not authorized for this action.`
+      );
+    }
+    next();
+  };
+};
+
+module.exports = { protect, authorize };
