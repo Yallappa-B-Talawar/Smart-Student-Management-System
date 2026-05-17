@@ -8,7 +8,7 @@ const createStudent = async (data) => {
 };
 
 const getAllStudents = async (query = {}) => {
-  const { page = 1, limit = 50, search, class: cls, status } = query;
+  const { page = 1, limit = 50, search, class: cls, status, classes } = query;
   const filter = {};
   if (search) {
     filter.$or = [
@@ -17,7 +17,12 @@ const getAllStudents = async (query = {}) => {
       { email: { $regex: search, $options: "i" } },
     ];
   }
+  // If specific class selected from filter tab
   if (cls) filter.class = cls;
+  // If teacher's classes array passed (restrict view to their classes)
+  if (classes && classes.length > 0 && !cls) {
+    filter.class = { $in: classes };
+  }
   if (status) filter.status = status;
 
   const students = await Student.find(filter)
@@ -47,11 +52,14 @@ const deleteStudent = async (id) => {
   return student;
 };
 
-const getStudentStats = async () => {
-  const total = await Student.countDocuments();
-  const active = await Student.countDocuments({ status: "active" });
-  const inactive = await Student.countDocuments({ status: "inactive" });
-  const classes = await Student.distinct("class");
+const getStudentStats = async (classFilter = null) => {
+  const baseFilter = classFilter ? { class: { $in: classFilter } } : {};
+  const total = await Student.countDocuments(baseFilter);
+  const active = await Student.countDocuments({ ...baseFilter, status: "active" });
+  const inactive = await Student.countDocuments({ ...baseFilter, status: "inactive" });
+  const classes = classFilter
+    ? classFilter
+    : await Student.distinct("class");
   return { total, active, inactive, classCount: classes.length, classes };
 };
 

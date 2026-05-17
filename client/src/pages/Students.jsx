@@ -15,6 +15,7 @@ const emptyForm = { name: '', email: '', rollNo: '', class: '', phone: '', addre
 export default function Students() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const canEdit = user?.role === 'admin' || user?.role === 'teacher';
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -135,7 +136,7 @@ export default function Students() {
           <h2 className="section-title">Students</h2>
           <p className="section-subtitle">Manage all student records</p>
         </div>
-        {isAdmin && (
+        {canEdit && (
           <button className="btn btn-accent" onClick={openCreateForm}>
             <HiOutlinePlus /> Add Student
           </button>
@@ -253,7 +254,7 @@ export default function Students() {
                   <td data-label="Actions">
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button className="btn btn-sm btn-ghost" aria-label={`View ${s.name}`} onClick={() => setViewStudent(s)}>👁</button>
-                      {isAdmin && <button className="btn btn-sm btn-ghost" aria-label={`Edit ${s.name}`} onClick={() => openEditForm(s)}><HiOutlinePencil /></button>}
+                      {canEdit && <button className="btn btn-sm btn-ghost" aria-label={`Edit ${s.name}`} onClick={() => openEditForm(s)}><HiOutlinePencil /></button>}
                       {isAdmin && <button className="btn btn-sm btn-ghost" style={{ color: 'var(--color-danger)' }} aria-label={`Delete ${s.name}`} onClick={() => handleDelete(s._id, s.name)}><HiOutlineTrash /></button>}
                     </div>
                   </td>
@@ -287,7 +288,7 @@ export default function Students() {
                 <div className="detail-item"><span className="detail-label">Admission Date</span><span className="detail-value">{new Date(viewStudent.admissionDate).toLocaleDateString('en-IN')}</span></div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                {isAdmin && <button className="btn btn-primary" onClick={() => { setViewStudent(null); openEditForm(viewStudent); }}>Edit Student</button>}
+                {canEdit && <button className="btn btn-primary" onClick={() => { setViewStudent(null); openEditForm(viewStudent); }}>Edit Student</button>}
                 <button className="btn btn-outline" onClick={() => setViewStudent(null)}>Close</button>
               </div>
             </div>

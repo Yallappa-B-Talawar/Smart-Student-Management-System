@@ -67,6 +67,10 @@ const studentSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    addedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   {
     timestamps: true,
