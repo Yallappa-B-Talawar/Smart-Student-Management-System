@@ -26,19 +26,19 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ students: 0, attendance: 0, teachers: 0, classes: [] });
   // Student-specific state
   const [studentProfile, setStudentProfile] = useState(null);
-  const [myTeacher, setMyTeacher] = useState(null);
+  const [myTeachers, setMyTeachers] = useState([]);
   const [myAttendance, setMyAttendance] = useState({ present: 0, absent: 0, late: 0, total: 0, rate: 0 });
 
   const fetchDashboardData = async () => {
     try {
       if (role === 'student') {
-        // Student dashboard — fetch their profile + teacher info + attendance
+        // Student dashboard — fetch their profile + teachers + attendance
         const [profileRes, attRes] = await Promise.all([
           studentsAPI.myProfile(),
           attendanceAPI.myAttendance(),
         ]);
         setStudentProfile(profileRes.data.data.student);
-        setMyTeacher(profileRes.data.data.teacher);
+        setMyTeachers(profileRes.data.data.teachers || []);
         setMyAttendance(attRes.data.data.stats || { present: 0, absent: 0, late: 0, total: 0, rate: 0 });
       } else {
         // Admin/Teacher dashboard
@@ -111,41 +111,51 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid-2 section">
-          {/* My Teacher Card */}
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-header-title">My Teacher</h3>
-            </div>
-            <div className="card-body">
-              {myTeacher ? (
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <span className="detail-label">Name</span>
-                    <span className="detail-value">{myTeacher.name}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Subject</span>
-                    <span className="detail-value">{myTeacher.subject}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Email</span>
-                    <span className="detail-value">{myTeacher.email}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Phone</span>
-                    <span className="detail-value">{myTeacher.phone}</span>
+        {/* My Teachers Section */}
+        <div className="section">
+          <h3 style={{ marginBottom: '16px', fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)' }}>My Teachers</h3>
+          {myTeachers.length > 0 ? (
+            <div className="grid-stats" style={{ gridTemplateColumns: `repeat(${Math.min(myTeachers.length, 3)}, 1fr)` }}>
+              {myTeachers.map((t, i) => (
+                <div className="card" key={i}>
+                  <div className="card-body" style={{ padding: 'var(--space-4)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ width: '44px', height: '44px', borderRadius: '0', border: '2px solid var(--border-color)', background: 'var(--color-primary)', color: 'var(--color-text-on-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '18px', flexShrink: 0 }}>
+                        {t.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 'var(--font-size-base)' }}>{t.name}</div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>{t.qualification}</div>
+                      </div>
+                    </div>
+                    <div className="detail-grid" style={{ gap: 'var(--space-2)' }}>
+                      <div className="detail-item">
+                        <span className="detail-label">Subject</span>
+                        <span className="detail-value"><span className="badge badge-primary">{t.subject}</span></span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Email</span>
+                        <span className="detail-value" style={{ fontSize: 'var(--font-size-xs)' }}>{t.email}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ) : (
+              ))}
+            </div>
+          ) : (
+            <div className="card">
+              <div className="card-body">
                 <div className="empty-state">
                   <div className="empty-state-icon">👨‍🏫</div>
-                  <div className="empty-state-title">Not assigned yet</div>
-                  <p className="empty-state-text">Your teacher hasn't added you to their class yet. Once they do, their info will appear here.</p>
+                  <div className="empty-state-title">No teachers assigned yet</div>
+                  <p className="empty-state-text">You haven't been added to any teacher's class list yet. Once a teacher adds your class, their info will appear here.</p>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
+        </div>
+
+        <div className="grid-2 section">
 
           {/* My Profile Card */}
           <div className="card">

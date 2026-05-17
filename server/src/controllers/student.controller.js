@@ -66,32 +66,27 @@ const getMyProfile = asyncHandler(async (req, res) => {
   // Find student record by matching email
   const student = await Student.findOne({ email: req.user.email });
   if (!student) {
-    const response = new ApiResponse(200, "No student profile linked yet", { student: null, teacher: null });
+    const response = new ApiResponse(200, "No student profile linked yet", { student: null, teachers: [] });
     return res.status(response.statusCode).json(response);
   }
 
-  // Find the teacher who added this student
-  let teacherInfo = null;
-  if (student.addedBy) {
-    // Get the user who added them
-    const addedByUser = await User.findById(student.addedBy).select("name email role");
-    if (addedByUser && addedByUser.role === "teacher") {
-      // Get full teacher record
-      const teacherRecord = await Teacher.findOne({ email: addedByUser.email });
-      teacherInfo = {
-        name: addedByUser.name,
-        email: addedByUser.email,
-        subject: teacherRecord?.subject || "N/A",
-        phone: teacherRecord?.phone || "N/A",
-      };
-    } else if (addedByUser && addedByUser.role === "admin") {
-      teacherInfo = { name: addedByUser.name, email: addedByUser.email, subject: "Admin", phone: "N/A" };
-    }
-  }
+  // Find ALL teachers whose classes array includes this student's class
+  const matchingTeachers = await Teacher.find({
+    classes: student.class,
+    status: "active",
+  }).select("name email subject phone classes qualification");
+
+  const teachers = matchingTeachers.map(t => ({
+    name: t.name,
+    email: t.email,
+    subject: t.subject,
+    phone: t.phone || "N/A",
+    qualification: t.qualification || "N/A",
+  }));
 
   const response = new ApiResponse(200, "Student profile fetched", {
     student,
-    teacher: teacherInfo,
+    teachers,
   });
   res.status(response.statusCode).json(response);
 });
