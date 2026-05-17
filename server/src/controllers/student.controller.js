@@ -1,7 +1,9 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ApiResponse = require("../utils/ApiResponse");
 const studentService = require("../services/student.service");
+const Student = require("../models/Student");
 const Teacher = require("../models/Teacher");
+const User = require("../models/User");
 
 const create = asyncHandler(async (req, res) => {
   // Auto-set who added this student
@@ -14,14 +16,8 @@ const create = asyncHandler(async (req, res) => {
 const getAll = asyncHandler(async (req, res) => {
   // If teacher, filter by their assigned classes
   if (req.user.role === "teacher") {
-    const teacher = await Teacher.findOne({ user: req.user.id });
-    if (!teacher) {
-      // Fallback: check by email
-      const teacherByEmail = await Teacher.findOne({ email: req.user.email });
-      if (teacherByEmail && teacherByEmail.classes.length > 0) {
-        req.query.classes = teacherByEmail.classes;
-      }
-    } else if (teacher.classes.length > 0) {
+    const teacher = await Teacher.findOne({ user: req.user.id }) || await Teacher.findOne({ email: req.user.email });
+    if (teacher && teacher.classes.length > 0) {
       req.query.classes = teacher.classes;
     }
   }
@@ -49,7 +45,6 @@ const remove = asyncHandler(async (req, res) => {
 });
 
 const getStats = asyncHandler(async (req, res) => {
-  // If teacher, get stats only for their classes
   let classFilter = null;
   if (req.user.role === "teacher") {
     const teacher = await Teacher.findOne({ user: req.user.id }) || await Teacher.findOne({ email: req.user.email });
@@ -62,4 +57,43 @@ const getStats = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
-module.exports = { create, getAll, getById, update, remove, getStats };
+/**
+ * getMyProfile — For students to see their own record
+ * Matches the logged-in user's email with a Student record.
+ * Also fetches the teacher who added them (addedBy field).
+ */
+const getMyProfile = asyncHandler(async (req, res) => {
+  // Find student record by matching email
+  const student = await Student.findOne({ email: req.user.email });
+  if (!student) {
+    const response = new ApiResponse(200, "No student profile linked yet", { student: null, teacher: null });
+    return res.status(response.statusCode).json(response);
+  }
+
+  // Find the teacher who added this student
+  let teacherInfo = null;
+  if (student.addedBy) {
+    // Get the user who added them
+    const addedByUser = await User.findById(student.addedBy).select("name email role");
+    if (addedByUser && addedByUser.role === "teacher") {
+      // Get full teacher record
+      const teacherRecord = await Teacher.findOne({ email: addedByUser.email });
+      teacherInfo = {
+        name: addedByUser.name,
+        email: addedByUser.email,
+        subject: teacherRecord?.subject || "N/A",
+        phone: teacherRecord?.phone || "N/A",
+      };
+    } else if (addedByUser && addedByUser.role === "admin") {
+      teacherInfo = { name: addedByUser.name, email: addedByUser.email, subject: "Admin", phone: "N/A" };
+    }
+  }
+
+  const response = new ApiResponse(200, "Student profile fetched", {
+    student,
+    teacher: teacherInfo,
+  });
+  res.status(response.statusCode).json(response);
+});
+
+module.exports = { create, getAll, getById, update, remove, getStats, getMyProfile };

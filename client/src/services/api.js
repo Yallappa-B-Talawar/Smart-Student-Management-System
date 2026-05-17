@@ -64,6 +64,7 @@ export const studentsAPI = {
   update: (id, data) => api.put(`/students/${id}`, data),
   delete: (id) => api.delete(`/students/${id}`),
   getStats: () => api.get('/students/stats'),
+  myProfile: () => api.get('/students/my-profile'),
 };
 
 // ── Teachers API ──
@@ -81,6 +82,7 @@ export const attendanceAPI = {
   getByClass: (cls, date) => api.get('/attendance', { params: { class: cls, date } }),
   mark: (records) => api.post('/attendance/mark', { records }),
   getStats: (cls, date) => api.get('/attendance/stats', { params: { class: cls, date } }),
+  myAttendance: (params) => api.get('/attendance/my-attendance', { params }),
 };
 
 export default api;

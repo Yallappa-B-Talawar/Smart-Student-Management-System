@@ -35,8 +35,12 @@ export default function Sidebar({ isOpen, onClose }) {
     navItems.push({ path: '/teachers', label: 'Teachers', icon: HiOutlineAcademicCap });
   }
 
-  // Attendance — admin and teacher can manage, student can view
-  navItems.push({ path: '/attendance', label: 'Attendance', icon: HiOutlineClipboardCheck });
+  // Attendance — different label per role
+  if (role === 'admin' || role === 'teacher') {
+    navItems.push({ path: '/attendance', label: 'Attendance', icon: HiOutlineClipboardCheck });
+  } else if (role === 'student') {
+    navItems.push({ path: '/my-attendance', label: 'My Attendance', icon: HiOutlineClipboardCheck });
+  }
 
   return (
     <>

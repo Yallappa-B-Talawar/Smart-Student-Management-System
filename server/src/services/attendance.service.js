@@ -59,4 +59,46 @@ const getAttendanceStats = async (cls, date) => {
   return { present, absent, late, totalStudents, rate: totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0 };
 };
 
-module.exports = { markAttendance, getAttendanceByClass, getAttendanceStats };
+/**
+ * getStudentAttendance — Get attendance history for a specific student
+ * Returns all attendance records + stats (present/absent/late counts)
+ */
+const getStudentAttendance = async (studentId, month, year) => {
+  const filter = { student: studentId };
+
+  // Filter by month/year if provided
+  if (month && year) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    filter.date = { $gte: startDate, $lte: endDate };
+  } else if (year) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+    filter.date = { $gte: startDate, $lte: endDate };
+  }
+
+  const records = await Attendance.find(filter).sort({ date: -1 }).limit(100);
+
+  const present = records.filter(r => r.status === "present").length;
+  const absent = records.filter(r => r.status === "absent").length;
+  const late = records.filter(r => r.status === "late").length;
+  const total = records.length;
+
+  return {
+    records: records.map(r => ({
+      _id: r._id,
+      date: r.date,
+      status: r.status,
+      class: r.class,
+    })),
+    stats: {
+      present,
+      absent,
+      late,
+      total,
+      rate: total > 0 ? Math.round((present / total) * 100) : 0,
+    },
+  };
+};
+
+module.exports = { markAttendance, getAttendanceByClass, getAttendanceStats, getStudentAttendance };

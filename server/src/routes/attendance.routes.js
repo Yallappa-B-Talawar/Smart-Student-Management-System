@@ -6,6 +6,9 @@ const { protect, authorize } = require("../middleware/auth.middleware");
 // All routes require authentication
 router.use(protect);
 
+// Student's own attendance — must be before other routes
+router.get("/my-attendance", attendanceController.getMyAttendance);
+
 // GET routes — accessible to all roles
 router.get("/", attendanceController.getByClass);
 router.get("/stats", attendanceController.getStats);

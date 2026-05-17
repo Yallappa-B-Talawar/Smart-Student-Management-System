@@ -6,6 +6,9 @@ const { protect, authorize } = require("../middleware/auth.middleware");
 // All routes require authentication
 router.use(protect);
 
+// Student self-profile — must be BEFORE /:id to avoid conflict
+router.get("/my-profile", studentController.getMyProfile);
+
 // GET routes — admin and teacher can view
 router.get("/stats", authorize("admin", "teacher"), studentController.getStats);
 router.get("/", authorize("admin", "teacher"), studentController.getAll);
