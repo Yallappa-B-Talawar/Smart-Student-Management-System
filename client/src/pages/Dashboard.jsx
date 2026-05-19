@@ -28,6 +28,12 @@ export default function Dashboard() {
   const [studentProfile, setStudentProfile] = useState(null);
   const [myTeachers, setMyTeachers] = useState([]);
   const [myAttendance, setMyAttendance] = useState({ present: 0, absent: 0, late: 0, total: 0, rate: 0 });
+  
+  // Teacher-specific state
+  const [teacherProfile, setTeacherProfile] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ subject: '', classes: '', phone: '' });
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -54,6 +60,14 @@ export default function Dashboard() {
           promises.push(Promise.resolve({ data: { data: { total: 0 } } }));
         }
         const [studentRes, teacherRes] = await Promise.all(promises);
+        
+        if (role === 'teacher') {
+          try {
+            const profRes = await teachersAPI.myProfile();
+            setTeacherProfile(profRes.data.data);
+          } catch {}
+        }
+        
         let attendanceRate = 0;
         try {
           const attRes = await attendanceAPI.getStats(null, new Date().toISOString());
@@ -67,6 +81,22 @@ export default function Dashboard() {
         });
       }
     } catch {} finally { setLoading(false); }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    try {
+      const payload = {
+        ...profileForm,
+        classes: profileForm.classes.split(',').map(c => c.trim()).filter(Boolean),
+      };
+      await teachersAPI.updateMyProfile(payload);
+      setEditingProfile(false);
+      fetchDashboardData();
+    } catch {} finally {
+      setProfileLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -249,6 +279,75 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {role === 'teacher' && teacherProfile && (
+        <div className="section">
+          <div className="card">
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="card-header-title">My Teacher Profile</h3>
+              {!editingProfile && (
+                <button className="btn btn-sm btn-outline" onClick={() => {
+                  setProfileForm({
+                    subject: teacherProfile.subject || '',
+                    classes: (teacherProfile.classes || []).join(', '),
+                    phone: teacherProfile.phone || ''
+                  });
+                  setEditingProfile(true);
+                }}>Edit Profile</button>
+              )}
+            </div>
+            <div className="card-body">
+              {editingProfile ? (
+                <form onSubmit={handleUpdateProfile}>
+                  <div className="grid-2">
+                    <div className="form-group">
+                      <label className="form-label">Subject</label>
+                      <input className="form-input" required value={profileForm.subject} onChange={e => setProfileForm({...profileForm, subject: e.target.value})} placeholder="e.g. Mathematics" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Classes (comma-separated)</label>
+                      <input className="form-input" value={profileForm.classes} onChange={e => setProfileForm({...profileForm, classes: e.target.value})} placeholder="e.g. 10-A, 10-B" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Phone</label>
+                      <input className="form-input" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="Phone number" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                    <button type="submit" className="btn btn-primary" disabled={profileLoading}>{profileLoading ? 'Saving...' : 'Save Changes'}</button>
+                    <button type="button" className="btn btn-outline" onClick={() => setEditingProfile(false)}>Cancel</button>
+                  </div>
+                </form>
+              ) : (
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Subject</span>
+                    <span className="detail-value">{teacherProfile.subject}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Assigned Classes</span>
+                    <span className="detail-value">
+                      {teacherProfile.classes?.length > 0 ? (
+                        teacherProfile.classes.map(c => <span key={c} className="badge badge-outline" style={{ marginRight: '4px' }}>{c}</span>)
+                      ) : (
+                        <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>No classes assigned yet. Click edit to set them!</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Email</span>
+                    <span className="detail-value">{teacherProfile.email}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Phone</span>
+                    <span className="detail-value">{teacherProfile.phone || 'Not set'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid-2 section">
         <div className="card">

@@ -2,6 +2,8 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiResponse = require("../utils/ApiResponse");
 const teacherService = require("../services/teacher.service");
 
+const Teacher = require("../models/Teacher");
+
 const create = asyncHandler(async (req, res) => {
   const teacher = await teacherService.createTeacher(req.body);
   const response = new ApiResponse(201, "Teacher created successfully", teacher);
@@ -38,4 +40,36 @@ const getStats = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
-module.exports = { create, getAll, getById, update, remove, getStats };
+const getMyProfile = asyncHandler(async (req, res) => {
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) {
+    const response = new ApiResponse(200, "Teacher profile not found", null);
+    return res.status(response.statusCode).json(response);
+  }
+  const response = new ApiResponse(200, "Teacher profile fetched", teacher);
+  res.status(response.statusCode).json(response);
+});
+
+const updateMyProfile = asyncHandler(async (req, res) => {
+  const teacher = await Teacher.findOne({ email: req.user.email });
+  if (!teacher) {
+    throw new ApiError(404, "Teacher profile not found");
+  }
+  
+  // Only allow updating specific fields
+  const { phone, subject, classes, qualification, experience, address } = req.body;
+  
+  if (phone !== undefined) teacher.phone = phone;
+  if (subject !== undefined) teacher.subject = subject;
+  if (classes !== undefined) teacher.classes = classes;
+  if (qualification !== undefined) teacher.qualification = qualification;
+  if (experience !== undefined) teacher.experience = experience;
+  if (address !== undefined) teacher.address = address;
+  
+  await teacher.save();
+  
+  const response = new ApiResponse(200, "Profile updated successfully", teacher);
+  res.status(response.statusCode).json(response);
+});
+
+module.exports = { create, getAll, getById, update, remove, getStats, getMyProfile, updateMyProfile };

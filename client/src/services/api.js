@@ -75,6 +75,8 @@ export const teachersAPI = {
   update: (id, data) => api.put(`/teachers/${id}`, data),
   delete: (id) => api.delete(`/teachers/${id}`),
   getStats: () => api.get('/teachers/stats'),
+  myProfile: () => api.get('/teachers/my-profile'),
+  updateMyProfile: (data) => api.put('/teachers/my-profile', data),
 };
 
 // ── Attendance API ──
