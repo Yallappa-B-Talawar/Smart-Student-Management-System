@@ -8,8 +8,9 @@ const createStudent = async (data) => {
 };
 
 const getAllStudents = async (query = {}) => {
-  const { page = 1, limit = 50, search, class: cls, status, classes } = query;
+  const { page = 1, limit = 50, search, class: cls, status, classes, period } = query;
   const filter = {};
+
   if (search) {
     filter.$or = [
       { name: { $regex: search, $options: "i" } },
@@ -17,13 +18,32 @@ const getAllStudents = async (query = {}) => {
       { email: { $regex: search, $options: "i" } },
     ];
   }
-  // If specific class selected from filter tab
+  // Class filter
   if (cls) filter.class = cls;
-  // If teacher's classes array passed (restrict view to their classes)
+  // Teacher's classes restriction
   if (classes && classes.length > 0 && !cls) {
     filter.class = { $in: classes };
   }
   if (status) filter.status = status;
+
+  // Period filter — today / week / month
+  if (period && period !== 'all') {
+    const now = new Date();
+    let from;
+    if (period === 'today') {
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    } else if (period === 'week') {
+      // Start of current week (Monday)
+      const day = now.getDay(); // 0=Sun,1=Mon,...
+      const diffToMonday = (day === 0 ? -6 : 1 - day);
+      from = new Date(now);
+      from.setDate(now.getDate() + diffToMonday);
+      from.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    }
+    if (from) filter.createdAt = { $gte: from };
+  }
 
   const students = await Student.find(filter)
     .sort({ createdAt: -1 })

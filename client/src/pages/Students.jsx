@@ -19,7 +19,8 @@ export default function Students() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterClass, setFilterClass] = useState('all');
+  const [filterClass, setFilterClass] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('all');
   const [classes, setClasses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -34,7 +35,8 @@ export default function Students() {
     try {
       const params = {};
       if (search) params.search = search;
-      if (filterClass !== 'all') params.class = filterClass;
+      if (filterClass) params.class = filterClass;
+      if (filterPeriod !== 'all') params.period = filterPeriod;
       const res = await studentsAPI.getAll(params);
       setStudents(res.data.data.students || []);
     } catch {
@@ -42,7 +44,7 @@ export default function Students() {
     } finally {
       setLoading(false);
     }
-  }, [search, filterClass]);
+  }, [search, filterClass, filterPeriod]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
@@ -139,8 +141,18 @@ export default function Students() {
     <div>
       <div className="section-header">
         <div>
-          <h2 className="section-title">Students</h2>
-          <p className="section-subtitle">Manage all student records</p>
+          <h2 className="section-title">
+            Students
+            <span className="badge badge-outline" style={{ marginLeft: '10px', fontSize: '14px', verticalAlign: 'middle' }}>
+              {students.length}
+            </span>
+          </h2>
+          <p className="section-subtitle">
+            {filterPeriod === 'today' ? 'Students added today' :
+             filterPeriod === 'week'  ? 'Students added this week' :
+             filterPeriod === 'month' ? 'Students added this month' :
+             filterClass ? `Class ${filterClass} students` : 'All student records'}
+          </p>
         </div>
         {canEdit && (
           <button className="btn btn-accent" onClick={openCreateForm}>
@@ -223,10 +235,38 @@ export default function Students() {
           <HiOutlineSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
           <input className="form-input" type="search" placeholder="Search by name or roll no..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} aria-label="Search students" />
         </div>
-        <div className="tabs">
-          <button className={`tab-btn ${filterClass === 'all' ? 'active' : ''}`} onClick={() => setFilterClass('all')}>All</button>
-          {classes.map(cls => (
-            <button key={cls} className={`tab-btn ${filterClass === cls ? 'active' : ''}`} onClick={() => setFilterClass(cls)}>{cls}</button>
+
+        {/* Class filter — no "All" button, default shows all */}
+        {classes.length > 0 && (
+          <div className="tabs">
+            {classes.map(cls => (
+              <button
+                key={cls}
+                className={`tab-btn ${filterClass === cls ? 'active' : ''}`}
+                onClick={() => setFilterClass(prev => prev === cls ? '' : cls)}
+                title={filterClass === cls ? 'Click to clear class filter' : `Filter by class ${cls}`}
+              >
+                {cls}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Period filter */}
+        <div className="tabs" style={{ marginLeft: 'auto' }}>
+          {[
+            { key: 'all',   label: 'All Time' },
+            { key: 'today', label: 'Today' },
+            { key: 'week',  label: 'This Week' },
+            { key: 'month', label: 'This Month' },
+          ].map(p => (
+            <button
+              key={p.key}
+              className={`tab-btn ${filterPeriod === p.key ? 'active' : ''}`}
+              onClick={() => setFilterPeriod(p.key)}
+            >
+              {p.label}
+            </button>
           ))}
         </div>
       </div>
