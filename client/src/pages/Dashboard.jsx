@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   HiOutlineUserGroup,
@@ -10,6 +10,8 @@ import {
   HiOutlineCog,
   HiOutlineCheck,
   HiOutlineX,
+  HiOutlinePencil,
+  HiOutlineSave,
 } from 'react-icons/hi';
 import { studentsAPI, teachersAPI, attendanceAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +21,229 @@ import './Dashboard.css';
 const statIcons = [HiOutlineUserGroup, HiOutlineClipboardCheck, HiOutlineAcademicCap, HiOutlineChartBar];
 const statVariants = ['primary', 'accent', 'teal', 'danger'];
 
+// ── Teacher Profile Section (My Classes + My Info) ────────────────────────────
+function TeacherProfileSection() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [newClass, setNewClass] = useState('');
+  const [form, setForm] = useState({ subject: '', phone: '', qualification: '', experience: '' });
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const res = await teachersAPI.myProfile();
+      const t = res.data.data;
+      setProfile(t);
+      setForm({
+        subject: t.subject || '',
+        phone: t.phone || '',
+        qualification: t.qualification || '',
+        experience: t.experience || '',
+      });
+    } catch {
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial load + 30s live refresh
+  useEffect(() => {
+    fetchProfile();
+    const interval = setInterval(fetchProfile, 30000);
+    return () => clearInterval(interval);
+  }, [fetchProfile]);
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      await teachersAPI.updateMyProfile({ ...form, classes: profile?.classes || [] });
+      await fetchProfile();
+      setEditing(false);
+      showToast('Profile updated successfully!');
+    } catch {
+      showToast('Failed to save profile', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addClass = async () => {
+    const cls = newClass.trim();
+    if (!cls) return;
+    const currentClasses = profile?.classes || [];
+    if (currentClasses.map(c => c.toLowerCase()).includes(cls.toLowerCase())) {
+      showToast('Class already exists', 'error');
+      return;
+    }
+    const updatedClasses = [...currentClasses, cls];
+    try {
+      await teachersAPI.updateMyProfile({ classes: updatedClasses });
+      await fetchProfile();
+      setNewClass('');
+      showToast(`Class "${cls}" added!`);
+    } catch {
+      showToast('Failed to add class', 'error');
+    }
+  };
+
+  const removeClass = async (cls) => {
+    const updatedClasses = (profile?.classes || []).filter(c => c !== cls);
+    try {
+      await teachersAPI.updateMyProfile({ classes: updatedClasses });
+      await fetchProfile();
+      showToast(`Class "${cls}" removed`);
+    } catch {
+      showToast('Failed to remove class', 'error');
+    }
+  };
+
+  if (loading) return <div className="spinner-wrapper"><div className="spinner" /><span className="spinner-text">Loading profile...</span></div>;
+
+  return (
+    <div className="section">
+      <div className="grid-2">
+        {/* My Classes Card */}
+        <div className="card">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-header-title">My Classes</h3>
+            <span className="badge badge-primary">{profile?.classes?.length || 0} classes</span>
+          </div>
+          <div className="card-body">
+            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+              Students in these classes will see you on their dashboard.
+            </p>
+
+            {/* Add class input */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <input
+                className="form-input"
+                style={{ flex: 1, marginBottom: 0 }}
+                placeholder="Enter class (e.g. 10-A, 5, CS-1)"
+                value={newClass}
+                onChange={e => setNewClass(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addClass()}
+              />
+              <button className="btn btn-accent" onClick={addClass} style={{ flexShrink: 0 }}>
+                <HiOutlinePlus /> Add
+              </button>
+            </div>
+
+            {/* Classes list */}
+            {profile?.classes?.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {profile.classes.map((cls, i) => (
+                  <span
+                    key={i}
+                    className="badge badge-outline"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '14px' }}
+                  >
+                    {cls}
+                    <button
+                      onClick={() => removeClass(cls)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', padding: '0', display: 'flex', lineHeight: 1 }}
+                      title={`Remove class ${cls}`}
+                    >
+                      <HiOutlineX style={{ fontSize: '14px' }} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state" style={{ padding: '16px 0' }}>
+                <div className="empty-state-icon" style={{ fontSize: '28px' }}>📚</div>
+                <div className="empty-state-title" style={{ fontSize: '14px' }}>No classes set</div>
+                <p className="empty-state-text" style={{ fontSize: '12px' }}>Add your classes above so students can find you.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* My Info Card */}
+        <div className="card">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-header-title">My Info</h3>
+            {!editing ? (
+              <button className="btn btn-outline btn-sm" onClick={() => setEditing(true)}>
+                <HiOutlinePencil /> Edit
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn btn-accent btn-sm" onClick={saveProfile} disabled={saving}>
+                  <HiOutlineSave /> {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button className="btn btn-outline btn-sm" onClick={() => setEditing(false)}>
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="card-body">
+            {editing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Subject</label>
+                  <input className="form-input" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Mathematics" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Phone</label>
+                  <input className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Your phone number" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Qualification</label>
+                  <input className="form-input" value={form.qualification} onChange={e => setForm({ ...form, qualification: e.target.value })} placeholder="e.g. M.Sc, B.Ed" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Experience (years)</label>
+                  <input className="form-input" type="number" value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })} placeholder="Years of experience" />
+                </div>
+              </div>
+            ) : (
+              <div className="detail-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Subject</span>
+                  <span className="detail-value">
+                    {profile?.subject && profile.subject !== 'Not set'
+                      ? <span className="badge badge-primary">{profile.subject}</span>
+                      : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Not set — click Edit</span>}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Phone</span>
+                  <span className="detail-value">{profile?.phone || '—'}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Qualification</span>
+                  <span className="detail-value">{profile?.qualification || '—'}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Experience</span>
+                  <span className="detail-value">{profile?.experience ? `${profile.experience} years` : '—'}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Status</span>
+                  <span className="detail-value">
+                    <span className={`badge ${profile?.status === 'active' ? 'badge-accent' : 'badge-danger'}`}>{profile?.status || 'active'}</span>
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
+    </div>
+  );
+}
+
+// ── Main Dashboard ─────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
   const role = user?.role;
@@ -28,17 +253,10 @@ export default function Dashboard() {
   const [studentProfile, setStudentProfile] = useState(null);
   const [myTeachers, setMyTeachers] = useState([]);
   const [myAttendance, setMyAttendance] = useState({ present: 0, absent: 0, late: 0, total: 0, rate: 0 });
-  
-  // Teacher-specific state
-  const [teacherProfile, setTeacherProfile] = useState(null);
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ subject: '', classes: '', phone: '' });
-  const [profileLoading, setProfileLoading] = useState(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       if (role === 'student') {
-        // Student dashboard — fetch their profile + teachers + attendance
         const [profileRes, attRes] = await Promise.all([
           studentsAPI.myProfile(),
           attendanceAPI.myAttendance(),
@@ -47,7 +265,6 @@ export default function Dashboard() {
         setMyTeachers(profileRes.data.data.teachers || []);
         setMyAttendance(attRes.data.data.stats || { present: 0, absent: 0, late: 0, total: 0, rate: 0 });
       } else {
-        // Admin/Teacher dashboard
         const promises = [];
         if (role === 'admin' || role === 'teacher') {
           promises.push(studentsAPI.getStats());
@@ -60,14 +277,6 @@ export default function Dashboard() {
           promises.push(Promise.resolve({ data: { data: { total: 0 } } }));
         }
         const [studentRes, teacherRes] = await Promise.all(promises);
-        
-        if (role === 'teacher') {
-          try {
-            const profRes = await teachersAPI.myProfile();
-            setTeacherProfile(profRes.data.data);
-          } catch {}
-        }
-        
         let attendanceRate = 0;
         try {
           const attRes = await attendanceAPI.getStats(null, new Date().toISOString());
@@ -81,32 +290,15 @@ export default function Dashboard() {
         });
       }
     } catch {} finally { setLoading(false); }
-  };
-
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    setProfileLoading(true);
-    try {
-      const payload = {
-        ...profileForm,
-        classes: profileForm.classes.split(',').map(c => c.trim()).filter(Boolean),
-      };
-      await teachersAPI.updateMyProfile(payload);
-      setEditingProfile(false);
-      fetchDashboardData();
-    } catch {} finally {
-      setProfileLoading(false);
-    }
-  };
+  }, [role]);
 
   useEffect(() => {
     fetchDashboardData();
-    // Auto-refresh every 30 seconds
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
-  }, [role]);
+  }, [fetchDashboardData]);
 
-  // ── STUDENT DASHBOARD ──
+  // ── STUDENT DASHBOARD ──────────────────────────────────────────────────────
   if (role === 'student') {
     return (
       <div className="dashboard">
@@ -186,7 +378,6 @@ export default function Dashboard() {
         </div>
 
         <div className="grid-2 section">
-
           {/* My Profile Card */}
           <div className="card">
             <div className="card-header">
@@ -221,42 +412,88 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Quick Links */}
-        <div className="section" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <Link to="/my-attendance" className="btn btn-accent"><HiOutlineClipboardCheck /> View Full Attendance</Link>
-          <Link to="/teachers" className="btn btn-primary"><HiOutlineAcademicCap /> View Teachers</Link>
-          <Link to="/settings" className="btn btn-outline"><HiOutlineCog /> Settings</Link>
+          {/* Quick Links */}
+          <div className="card">
+            <div className="card-header"><h3 className="card-header-title">Quick Links</h3></div>
+            <div className="card-body">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <Link to="/my-attendance" className="btn btn-accent" style={{ justifyContent: 'flex-start' }}><HiOutlineClipboardCheck /> View Full Attendance</Link>
+                <Link to="/teachers" className="btn btn-primary" style={{ justifyContent: 'flex-start' }}><HiOutlineAcademicCap /> View Teachers</Link>
+                <Link to="/settings" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}><HiOutlineCog /> Settings</Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ── ADMIN / TEACHER DASHBOARD ──
-  const statCards = [
-    { label: 'Total Students', value: loading ? '...' : String(stats.students), show: role === 'admin' || role === 'teacher' },
-    { label: 'Attendance Rate', value: loading ? '...' : `${stats.attendance}%`, show: true },
-    { label: 'Total Teachers', value: loading ? '...' : String(stats.teachers), show: role === 'admin' },
-    { label: 'Total Classes', value: loading ? '...' : String(stats.classes.length), show: role === 'admin' || role === 'teacher' },
-  ].filter(s => s.show);
+  // ── TEACHER DASHBOARD ──────────────────────────────────────────────────────
+  if (role === 'teacher') {
+    const statCards = [
+      { label: 'Total Students', value: loading ? '...' : String(stats.students) },
+      { label: 'Attendance Rate', value: loading ? '...' : `${stats.attendance}%` },
+      { label: 'Total Classes', value: loading ? '...' : String(stats.classes.length) },
+    ];
 
-  const quickActions = [];
-  if (role === 'admin') {
-    quickActions.push({ label: 'Add Student', to: '/students', icon: HiOutlinePlus, color: 'accent' });
-    quickActions.push({ label: 'Add Teacher', to: '/teachers', icon: HiOutlinePlus, color: 'primary' });
-    quickActions.push({ label: 'Mark Attendance', to: '/attendance', icon: HiOutlineClipboardCheck, color: 'teal' });
-  } else if (role === 'teacher') {
-    quickActions.push({ label: 'My Students', to: '/students', icon: HiOutlineUserGroup, color: 'accent' });
-    quickActions.push({ label: 'Mark Attendance', to: '/attendance', icon: HiOutlineClipboardCheck, color: 'primary' });
+    return (
+      <div className="dashboard">
+        <div className="welcome-banner section">
+          <div className="welcome-text">
+            <h2>Welcome back, {user?.name || 'Teacher'}! 👋</h2>
+            <p>Manage your classes and track your students' progress.</p>
+          </div>
+          <div className="welcome-date">
+            <HiOutlineCalendar />
+            <span>{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid-stats section" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          {statCards.map((stat, i) => {
+            const Icon = statIcons[i % statIcons.length];
+            return (
+              <div className="stat-card" key={i}>
+                <div className={`stat-card-icon ${statVariants[i % statVariants.length]}`}><Icon /></div>
+                <div className="stat-card-info">
+                  <div className="stat-card-label">{stat.label}</div>
+                  <div className="stat-card-value">{stat.value}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Teacher Profile Section — My Classes + My Info */}
+        <TeacherProfileSection />
+
+        {/* Quick Actions */}
+        <div className="section">
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <Link to="/students" className="btn btn-accent"><HiOutlineUserGroup /> My Students</Link>
+            <Link to="/attendance" className="btn btn-primary"><HiOutlineClipboardCheck /> Mark Attendance</Link>
+            <Link to="/settings" className="btn btn-outline"><HiOutlineCog /> Settings</Link>
+          </div>
+        </div>
+      </div>
+    );
   }
-  quickActions.push({ label: 'Settings', to: '/settings', icon: HiOutlineCog, color: 'danger' });
+
+  // ── ADMIN DASHBOARD ────────────────────────────────────────────────────────
+  const statCards = [
+    { label: 'Total Students', value: loading ? '...' : String(stats.students) },
+    { label: 'Attendance Rate', value: loading ? '...' : `${stats.attendance}%` },
+    { label: 'Total Teachers', value: loading ? '...' : String(stats.teachers) },
+    { label: 'Total Classes', value: loading ? '...' : String(stats.classes.length) },
+  ];
 
   return (
     <div className="dashboard">
       <div className="welcome-banner section">
         <div className="welcome-text">
-          <h2>Welcome back, {user?.name || 'User'}! 👋</h2>
+          <h2>Welcome back, {user?.name || 'Admin'}! 👋</h2>
           <p>Here's what's happening in your school today.</p>
         </div>
         <div className="welcome-date">
@@ -265,7 +502,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid-stats section" style={{ gridTemplateColumns: `repeat(${statCards.length}, 1fr)` }}>
+      <div className="grid-stats section" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {statCards.map((stat, i) => {
           const Icon = statIcons[i % statIcons.length];
           return (
@@ -280,98 +517,21 @@ export default function Dashboard() {
         })}
       </div>
 
-      {role === 'teacher' && teacherProfile && (
-        <div className="section">
-          <div className="card">
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 className="card-header-title">My Teacher Profile</h3>
-              {!editingProfile && (
-                <button className="btn btn-sm btn-outline" onClick={() => {
-                  setProfileForm({
-                    subject: teacherProfile.subject || '',
-                    classes: (teacherProfile.classes || []).join(', '),
-                    phone: teacherProfile.phone || ''
-                  });
-                  setEditingProfile(true);
-                }}>Edit Profile</button>
-              )}
-            </div>
-            <div className="card-body">
-              {editingProfile ? (
-                <form onSubmit={handleUpdateProfile}>
-                  <div className="grid-2">
-                    <div className="form-group">
-                      <label className="form-label">Subject</label>
-                      <input className="form-input" required value={profileForm.subject} onChange={e => setProfileForm({...profileForm, subject: e.target.value})} placeholder="e.g. Mathematics" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Classes (comma-separated)</label>
-                      <input className="form-input" value={profileForm.classes} onChange={e => setProfileForm({...profileForm, classes: e.target.value})} placeholder="e.g. 10-A, 10-B" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Phone</label>
-                      <input className="form-input" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="Phone number" />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                    <button type="submit" className="btn btn-primary" disabled={profileLoading}>{profileLoading ? 'Saving...' : 'Save Changes'}</button>
-                    <button type="button" className="btn btn-outline" onClick={() => setEditingProfile(false)}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <span className="detail-label">Subject</span>
-                    <span className="detail-value">{teacherProfile.subject}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Assigned Classes</span>
-                    <span className="detail-value">
-                      {teacherProfile.classes?.length > 0 ? (
-                        teacherProfile.classes.map(c => <span key={c} className="badge badge-outline" style={{ marginRight: '4px' }}>{c}</span>)
-                      ) : (
-                        <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>No classes assigned yet. Click edit to set them!</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Email</span>
-                    <span className="detail-value">{teacherProfile.email}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Phone</span>
-                    <span className="detail-value">{teacherProfile.phone || 'Not set'}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="grid-2 section">
         <div className="card">
-          <div className="card-header">
-            <h3 className="card-header-title">Quick Actions</h3>
-          </div>
+          <div className="card-header"><h3 className="card-header-title">Quick Actions</h3></div>
           <div className="card-body">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {quickActions.map((action, i) => {
-                const Icon = action.icon;
-                return (
-                  <Link key={i} to={action.to} className={`btn btn-${action.color}`} style={{ justifyContent: 'flex-start' }}>
-                    <Icon /> {action.label}
-                  </Link>
-                );
-              })}
+              <Link to="/students" className="btn btn-accent" style={{ justifyContent: 'flex-start' }}><HiOutlinePlus /> Add Student</Link>
+              <Link to="/teachers" className="btn btn-primary" style={{ justifyContent: 'flex-start' }}><HiOutlinePlus /> Add Teacher</Link>
+              <Link to="/attendance" className="btn btn-teal" style={{ justifyContent: 'flex-start' }}><HiOutlineClipboardCheck /> Mark Attendance</Link>
+              <Link to="/settings" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}><HiOutlineCog /> Settings</Link>
             </div>
           </div>
         </div>
 
         <div className="card">
-          <div className="card-header">
-            <h3 className="card-header-title">System Info</h3>
-          </div>
+          <div className="card-header"><h3 className="card-header-title">System Info</h3></div>
           <div className="card-body">
             <div className="detail-grid">
               <div className="detail-item">

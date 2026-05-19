@@ -1,7 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ApiResponse = require("../utils/ApiResponse");
+const ApiError = require("../utils/ApiError");
 const teacherService = require("../services/teacher.service");
-
 const Teacher = require("../models/Teacher");
 
 const create = asyncHandler(async (req, res) => {
@@ -40,36 +40,48 @@ const getStats = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
+/**
+ * getMyProfile — Teacher fetches their own Teacher record
+ * Matches logged-in user's email to their Teacher document
+ */
 const getMyProfile = asyncHandler(async (req, res) => {
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) {
-    const response = new ApiResponse(200, "Teacher profile not found", null);
-    return res.status(response.statusCode).json(response);
+    throw new ApiError(404, "Teacher profile not found. Please contact admin.");
   }
   const response = new ApiResponse(200, "Teacher profile fetched", teacher);
   res.status(response.statusCode).json(response);
 });
 
+/**
+ * updateMyProfile — Teacher updates their own subject, classes, phone
+ * Only allows updating specific fields (not status or name — admin controls those)
+ */
 const updateMyProfile = asyncHandler(async (req, res) => {
+  const { subject, classes, phone, qualification, experience } = req.body;
+
   const teacher = await Teacher.findOne({ email: req.user.email });
   if (!teacher) {
-    throw new ApiError(404, "Teacher profile not found");
+    throw new ApiError(404, "Teacher profile not found.");
   }
-  
-  // Only allow updating specific fields
-  const { phone, subject, classes, qualification, experience, address } = req.body;
-  
-  if (phone !== undefined) teacher.phone = phone;
+
+  // Only update allowed fields
   if (subject !== undefined) teacher.subject = subject;
-  if (classes !== undefined) teacher.classes = classes;
+  if (phone !== undefined) teacher.phone = phone;
   if (qualification !== undefined) teacher.qualification = qualification;
   if (experience !== undefined) teacher.experience = experience;
-  if (address !== undefined) teacher.address = address;
-  
+
+  // classes must be an array of trimmed non-empty strings
+  if (classes !== undefined) {
+    teacher.classes = Array.isArray(classes)
+      ? classes.map(c => c.trim()).filter(Boolean)
+      : classes.split(",").map(c => c.trim()).filter(Boolean);
+  }
+
   await teacher.save();
-  
   const response = new ApiResponse(200, "Profile updated successfully", teacher);
   res.status(response.statusCode).json(response);
 });
 
 module.exports = { create, getAll, getById, update, remove, getStats, getMyProfile, updateMyProfile };
+
