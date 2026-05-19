@@ -23,8 +23,8 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (email, password) => {
-    const res = await authAPI.login({ email, password });
+  const login = async (email, password, organizationId) => {
+    const res = await authAPI.login({ email, password, organizationId });
     localStorage.setItem('ssms-token', res.data.data.accessToken);
     setUser(res.data.data.user);
     return res.data;

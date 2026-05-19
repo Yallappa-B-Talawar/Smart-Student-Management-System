@@ -73,21 +73,17 @@ const register = asyncHandler(async (req, res) => {
  * → sends back user data + access token + refresh cookie
  */
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, organizationId } = req.body;
 
   const { user, accessToken, refreshToken } = await authService.loginUser(
     email,
-    password
+    password,
+    organizationId
   );
 
-  // Set refresh token cookie
   res.cookie("refreshToken", refreshToken, cookieOptions);
 
-  const response = new ApiResponse(200, "Login successful", {
-    user,
-    accessToken,
-  });
-
+  const response = new ApiResponse(200, "Login successful", { user, accessToken });
   res.status(response.statusCode).json(response);
 });
 

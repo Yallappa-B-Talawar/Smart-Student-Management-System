@@ -67,31 +67,31 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    // ── Organization ─────────────────────────────────────────
+    // Links the user to their school/organization
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null,
+    },
+
     // ── Account Status ───────────────────────────────────────
     isActive: {
       type: Boolean,
-      default: true,       // New accounts are active by default
+      default: true,
     },
 
     // ── Security ─────────────────────────────────────────────
-    // Stores the refresh token — allows server-side logout
-    // When user logs out, we delete this. If they try to refresh,
-    // we compare their cookie token with this — if no match → reject
     refreshToken: {
       type: String,
-      select: false,        // Never include in responses
+      select: false,
     },
 
     lastLogin: {
       type: Date,
     },
   },
-  {
-    // timestamps: true automatically adds:
-    // createdAt: Date (when document was first created)
-    // updatedAt: Date (when document was last modified)
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 // ─────────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ const env = require("../config/env");
 
 const Teacher = require("../models/Teacher");
 const Student = require("../models/Student");
+const orgService = require("./organization.service");
 
 /**
  * registerUser — Creates a new user account
@@ -44,19 +45,37 @@ const Student = require("../models/Student");
 const registerUser = async (userData) => {
   // Step 1: Check for existing user
   const existingUser = await User.findOne({ email: userData.email });
-  if (existingUser) {
-    // 409 = Conflict (resource already exists)
-    throw new ApiError(409, "An account with this email already exists");
+  if (existingUser) throw new ApiError(409, "An account with this email already exists");
+
+  // Step 2: Validate organization + code (required for teacher and student)
+  let organizationId = null;
+  if (userData.role === "teacher" || userData.role === "student") {
+    if (!userData.organizationId) {
+      throw new ApiError(400, "Please select your school/organization");
+    }
+    if (!userData.organizationCode) {
+      throw new ApiError(400, "Please enter the 5-letter organization code provided by your admin");
+    }
+    // verifyOrganization throws if name/code don't match
+    const org = await orgService.verifyOrganization(userData.organizationId, userData.organizationCode);
+    organizationId = org._id;
+  }
+  // Admins can optionally link to an org but don't need a code
+  if (userData.role === "admin" && userData.organizationId) {
+    organizationId = userData.organizationId;
   }
 
-  // Step 2: Create user in database
-  // The password is hashed automatically by the pre-save hook in User.js
-  // We don't need to hash it here — that's the beauty of Mongoose hooks
-  const user = await User.create(userData);
+  // Step 3: Create user
+  const user = await User.create({
+    name: userData.name,
+    email: userData.email,
+    password: userData.password,
+    role: userData.role,
+    phone: userData.phone || "",
+    organization: organizationId,
+  });
 
-  // Step 3: Auto-create role-specific profile record
-  // This ensures teachers appear in the Teachers list immediately after registering
-  // and can be linked to students who share their class
+  // Step 4: Auto-create Teacher profile for teachers
   if (user.role === "teacher") {
     const existingTeacher = await Teacher.findOne({ email: user.email });
     if (!existingTeacher) {
@@ -65,33 +84,20 @@ const registerUser = async (userData) => {
         name: user.name,
         email: user.email,
         phone: user.phone || "",
-        subject: "Not set",   // Admin/teacher can update this via the Teachers page
-        classes: [],           // Empty until teacher sets their classes
+        subject: "Not set",
+        classes: [],
         status: "active",
       });
     }
   }
 
-  // For students: we don't auto-create a Student record here because
-  // students need extra academic info (rollNo, class, etc.) that only
-  // admin/teacher can assign. The link is done via matching email.
-
-  // Step 4: Generate both tokens
+  // Step 5: Generate tokens
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
-
-  // Step 5: Store refresh token in database
-  // WHY? So we can invalidate it on logout (server-side logout)
-  // Without this, a stolen refresh token works until it expires
   user.refreshToken = refreshToken;
   user.lastLogin = new Date();
-
-  // validateBeforeSave: false → skip validation (password already hashed,
-  // would fail the "minlength: 8" check because hash is 60+ chars)
   await user.save({ validateBeforeSave: false });
 
-  // Step 6: Return clean user object (without password and refreshToken)
-  // We manually construct the response to control exactly what's sent
   const userResponse = {
     _id: user._id,
     name: user.name,
@@ -100,6 +106,7 @@ const registerUser = async (userData) => {
     avatar: user.avatar,
     phone: user.phone,
     isActive: user.isActive,
+    organization: organizationId,
     createdAt: user.createdAt,
   };
 
@@ -121,46 +128,29 @@ const registerUser = async (userData) => {
  * @param {string} password
  * @returns {Object} - { user, accessToken, refreshToken }
  */
-const loginUser = async (email, password) => {
-  // Step 1: Find user by email
-  // .select("+password") overrides "select: false" from schema
-  // Without this, password field would be undefined
+const loginUser = async (email, password, organizationId) => {
   const user = await User.findOne({ email }).select("+password +refreshToken");
 
-  if (!user) {
-    // 401 = Unauthorized
-    // SECURITY: Don't say "email not found" — that reveals which emails exist
-    // Always give a vague message for login failures
-    throw new ApiError(401, "Invalid email or password");
+  if (!user) throw new ApiError(401, "Invalid email or password");
+  if (!user.isActive) throw new ApiError(403, "Your account has been deactivated. Contact admin.");
+
+  // Validate organization if provided (teachers and students must match)
+  if (organizationId && (user.role === "teacher" || user.role === "student")) {
+    // user.organization is the stored org ObjectId
+    if (!user.organization || user.organization.toString() !== organizationId.toString()) {
+      throw new ApiError(403, "You are not registered under this organization. Please select the correct school.");
+    }
   }
 
-  // Step 2: Check if account is active
-  if (!user.isActive) {
-    throw new ApiError(
-      403,
-      "Your account has been deactivated. Contact admin."
-    );
-  }
-
-  // Step 3: Compare passwords using bcrypt
-  // user.comparePassword() is the instance method we defined in User.js
   const isPasswordCorrect = await user.comparePassword(password);
+  if (!isPasswordCorrect) throw new ApiError(401, "Invalid email or password");
 
-  if (!isPasswordCorrect) {
-    // Same vague message — don't reveal that password specifically was wrong
-    throw new ApiError(401, "Invalid email or password");
-  }
-
-  // Step 4: Generate tokens
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
-
-  // Step 5: Update database
   user.refreshToken = refreshToken;
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });
 
-  // Step 6: Return clean response
   const userResponse = {
     _id: user._id,
     name: user.name,
@@ -169,6 +159,7 @@ const loginUser = async (email, password) => {
     avatar: user.avatar,
     phone: user.phone,
     isActive: user.isActive,
+    organization: user.organization,
     lastLogin: user.lastLogin,
   };
 

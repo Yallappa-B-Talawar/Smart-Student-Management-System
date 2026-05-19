@@ -8,6 +8,7 @@ import Students from './pages/Students';
 import Teachers from './pages/Teachers';
 import Attendance from './pages/Attendance';
 import MyAttendance from './pages/MyAttendance';
+import Organizations from './pages/Organizations';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
@@ -40,6 +41,7 @@ function App() {
               <Route path="teachers" element={<Teachers />} />
               <Route path="attendance" element={<Attendance />} />
               <Route path="my-attendance" element={<MyAttendance />} />
+              <Route path="organizations" element={<Organizations />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>

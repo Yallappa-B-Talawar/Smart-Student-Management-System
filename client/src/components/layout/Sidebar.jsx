@@ -7,6 +7,7 @@ import {
   HiOutlineClipboardCheck,
   HiOutlineCog,
   HiOutlineLogout,
+  HiOutlineOfficeBuilding,
 } from 'react-icons/hi';
 import './Sidebar.css';
 
@@ -33,6 +34,11 @@ export default function Sidebar({ isOpen, onClose }) {
   // Teachers — admin and student can view teacher directory
   if (role === 'admin' || role === 'student') {
     navItems.push({ path: '/teachers', label: 'Teachers', icon: HiOutlineAcademicCap });
+  }
+
+  // Organizations — admin only
+  if (role === 'admin') {
+    navItems.push({ path: '/organizations', label: 'Organizations', icon: HiOutlineOfficeBuilding });
   }
 
   // Attendance — different label per role

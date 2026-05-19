@@ -87,4 +87,14 @@ export const attendanceAPI = {
   myAttendance: (params) => api.get('/attendance/my-attendance', { params }),
 };
 
+// ── Organizations API ──
+export const organizationsAPI = {
+  getAll: () => api.get('/organizations'),                         // public
+  getById: (id) => api.get(`/organizations/${id}`),               // public
+  create: (data) => api.post('/organizations', data),             // admin
+  update: (id, data) => api.put(`/organizations/${id}`, data),    // admin
+  delete: (id) => api.delete(`/organizations/${id}`),             // admin
+  getStats: () => api.get('/organizations/admin/stats'),          // admin
+};
+
 export default api;
