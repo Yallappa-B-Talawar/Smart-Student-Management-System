@@ -46,6 +46,12 @@ export default function Students() {
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
+  // Auto-refresh every 30 seconds for live updates
+  useEffect(() => {
+    const interval = setInterval(fetchStudents, 30000);
+    return () => clearInterval(interval);
+  }, [fetchStudents]);
+
   useEffect(() => {
     studentsAPI.getStats().then(res => {
       setClasses(res.data.data.classes || []);

@@ -31,6 +31,12 @@ export default function Teachers() {
 
   useEffect(() => { fetchTeachers(); }, [fetchTeachers]);
 
+  // Auto-refresh every 30 seconds for live updates
+  useEffect(() => {
+    const interval = setInterval(fetchTeachers, 30000);
+    return () => clearInterval(interval);
+  }, [fetchTeachers]);
+
   useEffect(() => {
     teachersAPI.getStats().then(res => setStats(res.data.data)).catch(() => {});
   }, [teachers]);

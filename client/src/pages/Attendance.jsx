@@ -36,6 +36,12 @@ export default function Attendance() {
 
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
 
+  // Auto-refresh every 30 seconds for live updates
+  useEffect(() => {
+    const interval = setInterval(fetchAttendance, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAttendance]);
+
   useEffect(() => {
     const present = records.filter(r => r.status === 'present').length;
     const absent = records.filter(r => r.status === 'absent').length;
