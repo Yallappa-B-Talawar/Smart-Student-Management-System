@@ -21,6 +21,111 @@ import './Dashboard.css';
 const statIcons = [HiOutlineUserGroup, HiOutlineClipboardCheck, HiOutlineAcademicCap, HiOutlineChartBar];
 const statVariants = ['primary', 'accent', 'teal', 'danger'];
 
+// ── TeacherCardList — Compact cards, click to expand details ─────────────────
+function TeacherCardList({ teachers }) {
+  const [expandedIdx, setExpandedIdx] = useState(null);
+
+  const toggle = (i) => setExpandedIdx(prev => prev === i ? null : i);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {teachers.map((t, i) => {
+        const isOpen = expandedIdx === i;
+        return (
+          <div
+            key={i}
+            className="card"
+            style={{ overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+          >
+            {/* Collapsed row — always visible */}
+            <div
+              onClick={() => toggle(i)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 18px',
+                userSelect: 'none',
+              }}
+            >
+              {/* Avatar */}
+              <div style={{
+                width: '42px', height: '42px', flexShrink: 0,
+                background: 'var(--color-primary)', color: 'var(--color-text-on-primary)',
+                border: '2px solid var(--border-color)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: '18px',
+              }}>
+                {t.name.charAt(0).toUpperCase()}
+              </div>
+
+              {/* Name + hint */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 'var(--font-size-base)' }}>{t.name}</div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                  {isOpen ? 'Click to collapse' : 'Click to view details'}
+                </div>
+              </div>
+
+              {/* Subject badge + chevron */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                {t.subject && t.subject !== 'Not set' && (
+                  <span className="badge badge-primary" style={{ fontSize: '12px' }}>{t.subject}</span>
+                )}
+                <span style={{
+                  fontSize: '18px', color: 'var(--color-text-muted)',
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                  display: 'inline-block', lineHeight: 1,
+                }}>▾</span>
+              </div>
+            </div>
+
+            {/* Expanded details panel */}
+            {isOpen && (
+              <div style={{
+                borderTop: '2px solid var(--border-color)',
+                padding: '16px 18px',
+                background: 'var(--color-surface)',
+                animation: 'fadeIn 0.15s ease',
+              }}>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Subject</span>
+                    <span className="detail-value">
+                      <span className="badge badge-primary">{t.subject || '—'}</span>
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Email</span>
+                    <span className="detail-value" style={{ fontSize: 'var(--font-size-xs)', wordBreak: 'break-all' }}>{t.email}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Phone</span>
+                    <span className="detail-value">{t.phone && t.phone !== 'N/A' ? t.phone : '—'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Qualification</span>
+                    <span className="detail-value">{t.qualification && t.qualification !== 'N/A' ? t.qualification : '—'}</span>
+                  </div>
+                  {t.classes?.length > 0 && (
+                    <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                      <span className="detail-label">Classes Taught</span>
+                      <span className="detail-value" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {t.classes.map((cls, j) => (
+                          <span key={j} className="badge badge-outline">{cls}</span>
+                        ))}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Teacher Profile Section (My Classes + My Info) ────────────────────────────
 function TeacherProfileSection() {
   const [profile, setProfile] = useState(null);
@@ -335,35 +440,21 @@ export default function Dashboard() {
 
         {/* My Teachers Section */}
         <div className="section">
-          <h3 style={{ marginBottom: '16px', fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)' }}>My Teachers</h3>
-          {myTeachers.length > 0 ? (
-            <div className="grid-stats" style={{ gridTemplateColumns: `repeat(${Math.min(myTeachers.length, 3)}, 1fr)` }}>
-              {myTeachers.map((t, i) => (
-                <div className="card" key={i}>
-                  <div className="card-body" style={{ padding: 'var(--space-4)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: '0', border: '2px solid var(--border-color)', background: 'var(--color-primary)', color: 'var(--color-text-on-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '18px', flexShrink: 0 }}>
-                        {t.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 'var(--font-size-base)' }}>{t.name}</div>
-                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>{t.qualification}</div>
-                      </div>
-                    </div>
-                    <div className="detail-grid" style={{ gap: 'var(--space-2)' }}>
-                      <div className="detail-item">
-                        <span className="detail-label">Subject</span>
-                        <span className="detail-value"><span className="badge badge-primary">{t.subject}</span></span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Email</span>
-                        <span className="detail-value" style={{ fontSize: 'var(--font-size-xs)' }}>{t.email}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <h3 style={{ marginBottom: '16px', fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)' }}>
+            My Teachers
+            {myTeachers.length > 0 && (
+              <span className="badge badge-outline" style={{ marginLeft: '10px', fontSize: '13px', verticalAlign: 'middle' }}>
+                {myTeachers.length}
+              </span>
+            )}
+          </h3>
+
+          {myTeachers.length > 0 ? (() => {
+            // Inner component-like logic via IIFE to use useState per card
+            // We pass selectedTeacher as state from parent scope
+            return null; // replaced below
+          })() || (
+            <TeacherCardList teachers={myTeachers} />
           ) : (
             <div className="card">
               <div className="card-body">
