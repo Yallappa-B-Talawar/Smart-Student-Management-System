@@ -24,15 +24,19 @@ const {
 const jwt = require("jsonwebtoken");
 const env = require("../config/env");
 
+const Teacher = require("../models/Teacher");
+const Student = require("../models/Student");
+
 /**
  * registerUser — Creates a new user account
  *
  * FLOW:
  * 1. Check if email already exists (prevent duplicates)
  * 2. Create User document (password auto-hashed by pre-save hook)
- * 3. Generate tokens
- * 4. Save refresh token to database
- * 5. Return user data + tokens
+ * 3. Auto-create Teacher/Student profile record based on role
+ * 4. Generate tokens
+ * 5. Save refresh token to database
+ * 6. Return user data + tokens
  *
  * @param {Object} userData - { name, email, password, role, phone }
  * @returns {Object} - { user, accessToken, refreshToken }
@@ -50,11 +54,33 @@ const registerUser = async (userData) => {
   // We don't need to hash it here — that's the beauty of Mongoose hooks
   const user = await User.create(userData);
 
-  // Step 3: Generate both tokens
+  // Step 3: Auto-create role-specific profile record
+  // This ensures teachers appear in the Teachers list immediately after registering
+  // and can be linked to students who share their class
+  if (user.role === "teacher") {
+    const existingTeacher = await Teacher.findOne({ email: user.email });
+    if (!existingTeacher) {
+      await Teacher.create({
+        user: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || "",
+        subject: "Not set",   // Admin/teacher can update this via the Teachers page
+        classes: [],           // Empty until teacher sets their classes
+        status: "active",
+      });
+    }
+  }
+
+  // For students: we don't auto-create a Student record here because
+  // students need extra academic info (rollNo, class, etc.) that only
+  // admin/teacher can assign. The link is done via matching email.
+
+  // Step 4: Generate both tokens
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
 
-  // Step 4: Store refresh token in database
+  // Step 5: Store refresh token in database
   // WHY? So we can invalidate it on logout (server-side logout)
   // Without this, a stolen refresh token works until it expires
   user.refreshToken = refreshToken;
@@ -64,7 +90,7 @@ const registerUser = async (userData) => {
   // would fail the "minlength: 8" check because hash is 60+ chars)
   await user.save({ validateBeforeSave: false });
 
-  // Step 5: Return clean user object (without password and refreshToken)
+  // Step 6: Return clean user object (without password and refreshToken)
   // We manually construct the response to control exactly what's sent
   const userResponse = {
     _id: user._id,

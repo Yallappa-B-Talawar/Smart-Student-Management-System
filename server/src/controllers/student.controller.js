@@ -70,11 +70,33 @@ const getMyProfile = asyncHandler(async (req, res) => {
     return res.status(response.statusCode).json(response);
   }
 
-  // Find ALL teachers whose classes array includes this student's class
-  const matchingTeachers = await Teacher.find({
-    classes: student.class,
-    status: "active",
-  }).select("name email subject phone classes qualification");
+  // Strategy 1: Find teachers whose classes array contains the student's class
+  // Use case-insensitive regex to handle mismatches like "10-A" vs "10a"
+  const studentClass = student.class ? student.class.trim() : "";
+  let matchingTeachers = [];
+
+  if (studentClass) {
+    matchingTeachers = await Teacher.find({
+      classes: { $elemMatch: { $regex: new RegExp(`^${studentClass}$`, "i") } },
+    }).select("name email subject phone classes qualification status");
+  }
+
+  // Strategy 2: If no matches by class, also check if addedBy is a teacher
+  if (matchingTeachers.length === 0 && student.addedBy) {
+    const addedByUser = await User.findById(student.addedBy).select("email role");
+    if (addedByUser && addedByUser.role === "teacher") {
+      const addedByTeacher = await Teacher.findOne({ email: addedByUser.email })
+        .select("name email subject phone classes qualification status");
+      if (addedByTeacher) matchingTeachers = [addedByTeacher];
+    }
+  }
+
+  // Strategy 3: Broad fallback — find ANY teacher that listed ANY class matching loosely
+  if (matchingTeachers.length === 0 && studentClass) {
+    matchingTeachers = await Teacher.find({
+      classes: { $elemMatch: { $regex: studentClass.replace(/[-\s]/g, "[-\\s]?"), $options: "i" } },
+    }).select("name email subject phone classes qualification status");
+  }
 
   const teachers = matchingTeachers.map(t => ({
     name: t.name,
@@ -82,11 +104,15 @@ const getMyProfile = asyncHandler(async (req, res) => {
     subject: t.subject,
     phone: t.phone || "N/A",
     qualification: t.qualification || "N/A",
+    classes: t.classes || [],
+    status: t.status,
   }));
 
   const response = new ApiResponse(200, "Student profile fetched", {
     student,
     teachers,
+    // Debug info (remove in production)
+    _debug: { studentClass, teachersFound: teachers.length },
   });
   res.status(response.statusCode).json(response);
 });
