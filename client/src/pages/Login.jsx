@@ -38,6 +38,8 @@ export default function Login() {
     }
   };
 
+  const selectedOrgName = orgs.find(o => o._id === form.organizationId)?.name;
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -53,11 +55,13 @@ export default function Login() {
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          {/* Organization selector */}
+          {/* Organization selector — required for teachers & students */}
           <div className="form-group">
             <label className="form-label" htmlFor="login-org">
               School / Organization
-              <span style={{ color: 'var(--color-text-muted)', fontWeight: 400, marginLeft: '6px' }}>(optional for admins)</span>
+              <span style={{ color: 'var(--color-text-muted)', fontWeight: 400, marginLeft: '6px', fontSize: 'var(--font-size-xs)' }}>
+                (required for teachers &amp; students)
+              </span>
             </label>
             <select
               className="form-select"
@@ -73,9 +77,13 @@ export default function Login() {
                 <option key={org._id} value={org._id}>{org.name}</option>
               ))}
             </select>
-            {form.organizationId && (
+            {selectedOrgName ? (
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-success)', marginTop: '4px' }}>
+                ✅ {selectedOrgName}
+              </div>
+            ) : (
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                ✅ {orgs.find(o => o._id === form.organizationId)?.name}
+                Admins may skip this. Teachers &amp; students must select their school.
               </div>
             )}
           </div>

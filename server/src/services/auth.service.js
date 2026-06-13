@@ -134,11 +134,14 @@ const loginUser = async (email, password, organizationId) => {
   if (!user) throw new ApiError(401, "Invalid email or password");
   if (!user.isActive) throw new ApiError(403, "Your account has been deactivated. Contact admin.");
 
-  // Validate organization if provided (teachers and students must match)
-  if (organizationId && (user.role === "teacher" || user.role === "student")) {
-    // user.organization is the stored org ObjectId
+  // Teachers and students MUST select their organization at login
+  if (user.role === "teacher" || user.role === "student") {
+    if (!organizationId) {
+      throw new ApiError(400, "Please select your school/organization to log in.");
+    }
+    // The selected org must match their registered org
     if (!user.organization || user.organization.toString() !== organizationId.toString()) {
-      throw new ApiError(403, "You are not registered under this organization. Please select the correct school.");
+      throw new ApiError(403, "Wrong organization selected. Please select the school you registered under.");
     }
   }
 

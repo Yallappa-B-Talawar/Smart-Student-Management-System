@@ -58,8 +58,28 @@ const registerSchema = Joi.object({
   phone: Joi.string()
     .pattern(/^[0-9]{10}$/)
     .optional()
+    .allow("")
     .messages({
       "string.pattern.base": "Phone must be a 10-digit number",
+    }),
+
+  // Organization fields — required for teacher/student, optional for admin
+  organizationId: Joi.string()
+    .optional()
+    .allow("", null)
+    .messages({
+      "string.base": "Organization ID must be a string",
+    }),
+
+  organizationCode: Joi.string()
+    .uppercase()
+    .length(5)
+    .pattern(/^[A-Z0-9]{5}$/)
+    .optional()
+    .allow("", null)
+    .messages({
+      "string.length": "Organization code must be exactly 5 characters",
+      "string.pattern.base": "Organization code must be 5 uppercase letters or digits",
     }),
 });
 
@@ -75,6 +95,14 @@ const loginSchema = Joi.object({
   password: Joi.string().required().messages({
     "any.required": "Password is required",
   }),
+
+  // Optional at validation layer — business logic enforces it per role in the service
+  organizationId: Joi.string()
+    .optional()
+    .allow("", null)
+    .messages({
+      "string.base": "Organization ID must be a string",
+    }),
 });
 
 /**
