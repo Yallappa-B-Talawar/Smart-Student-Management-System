@@ -36,6 +36,7 @@ const generateAccessToken = (user) => {
       id: user._id,        // MongoDB document ID
       role: user.role,      // "admin", "teacher", or "student"
       email: user.email,
+      organization: user.organization,
     },
     env.jwt.accessSecret,   // Secret key — NEVER expose this
     {

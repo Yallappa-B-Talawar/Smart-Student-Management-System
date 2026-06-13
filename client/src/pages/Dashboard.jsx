@@ -17,6 +17,7 @@ import {
   HiOutlineClock,
 } from 'react-icons/hi';
 import { studentsAPI, teachersAPI, attendanceAPI, organizationsAPI } from '../services/api';
+import OrganizationDetailModal from '../components/ui/OrganizationDetailModal';
 import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
 import './Dashboard.css';
@@ -37,22 +38,8 @@ function StatCard({ icon: Icon, iconVariant, label, value, loading }) {
   );
 }
 
-function LiveIndicator({ label = 'Live • updates every 30s' }) {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '6px',
-      fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600,
-    }}>
-      <span style={{
-        width: '7px', height: '7px', borderRadius: '50%',
-        background: 'var(--color-accent)',
-        boxShadow: '0 0 0 2px var(--color-accent-dim, #d4f5a0)',
-        display: 'inline-block',
-        animation: 'pulse 2s infinite',
-      }} />
-      {label}
-    </span>
-  );
+function LiveIndicator() {
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -345,6 +332,8 @@ export default function Dashboard() {
   // Admin org info
   const [orgInfo, setOrgInfo] = useState(null);
   const [orgStats, setOrgStats] = useState({ total: 0, active: 0 });
+  const [orgsList, setOrgsList] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState(null);
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -395,6 +384,8 @@ export default function Dashboard() {
         try {
           const orgStatsRes = await organizationsAPI.getStats();
           setOrgStats(orgStatsRes.data.data);
+          const orgListRes = await organizationsAPI.getAll();
+          setOrgsList(orgListRes.data.data || []);
         } catch {}
       }
     } catch {}
@@ -480,6 +471,7 @@ export default function Dashboard() {
                       <span className="badge badge-outline">{studentProfile.class}{studentProfile.section ? ` - ${studentProfile.section}` : ''}</span>
                     </span>
                   </div>
+                  <div className="detail-item"><span className="detail-label">School</span><span className="detail-value"><strong>{studentProfile.organization?.name || '—'}</strong></span></div>
                   <div className="detail-item"><span className="detail-label">Email</span><span className="detail-value" style={{ fontSize: 'var(--font-size-xs)' }}>{studentProfile.email}</span></div>
                   <div className="detail-item"><span className="detail-label">Phone</span><span className="detail-value">{studentProfile.phone || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Parent</span><span className="detail-value">{studentProfile.parentName || '—'}</span></div>
@@ -606,7 +598,7 @@ export default function Dashboard() {
       {/* ── Key Metrics ── */}
       <div className="section">
         <h3 className="section-group-title">System Overview</h3>
-        <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="grid-stats">
           <StatCard icon={HiOutlineUserGroup} iconVariant="primary" label="Total Students" value={stats.students} loading={loading} />
           <StatCard icon={HiOutlineAcademicCap} iconVariant="teal" label="Total Teachers" value={stats.teachers} loading={loading} />
           <StatCard icon={HiOutlineClipboardCheck} iconVariant="accent" label="Attendance Rate" value={`${stats.attendance}%`} loading={loading} />
@@ -614,106 +606,144 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Second Row: Quick Actions + Organization + System Info ── */}
-      <div className="section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-
-        {/* Quick Actions */}
-        <div className="card">
-          <div className="card-header"><h3 className="card-header-title">Quick Actions</h3></div>
-          <div className="card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <Link to="/students" className="btn btn-accent" style={{ justifyContent: 'flex-start' }}>
-                <HiOutlinePlus /> Add Student
-              </Link>
-              <Link to="/teachers" className="btn btn-primary" style={{ justifyContent: 'flex-start' }}>
-                <HiOutlinePlus /> Add Teacher
-              </Link>
-              <Link to="/attendance" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>
-                <HiOutlineClipboardCheck /> Mark Attendance
-              </Link>
-              <Link to="/organizations" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>
-                <HiOutlineOfficeBuilding /> Manage Organizations
-              </Link>
-              <Link to="/settings" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>
-                <HiOutlineCog /> Settings
-              </Link>
+      {/* ── Dashboard Columns ── */}
+      <div className="admin-dashboard-layout section">
+        {/* Left column — Main data */}
+        <div className="admin-main" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Organizations card */}
+          <div className="card">
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="card-header-title">Organizations Summary</h3>
+              <Link to="/organizations" className="btn btn-sm btn-outline"><HiOutlineOfficeBuilding /> Manage</Link>
+            </div>
+            <div className="card-body">
+              <div className="detail-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Total Orgs</span>
+                  <span className="detail-value"><strong>{loading ? '...' : orgStats.total}</strong></span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Active Orgs</span>
+                  <span className="detail-value"><span className="badge badge-accent">{loading ? '...' : orgStats.active}</span></span>
+                </div>
+              </div>
+              
+              {/* Organization List Section */}
+              <div style={{ marginTop: '16px', borderTop: '2px solid var(--border-color)', paddingTop: '16px' }}>
+                <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Active Organizations ({orgsList.filter(o => o.status === 'active').length})
+                </div>
+                {orgsList.length === 0 ? (
+                  <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                    No organizations created yet.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {orgsList.filter(o => o.status === 'active').map(org => (
+                      <div
+                        key={org._id}
+                        onClick={() => setSelectedOrg(org)}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '8px 12px', background: 'var(--color-surface)',
+                          border: '2px solid var(--border-color)', cursor: 'pointer',
+                          transition: 'transform 0.1s, border-color 0.1s'
+                        }}
+                        className="hover-card-minor"
+                      >
+                        <span style={{ fontWeight: 700, fontSize: '13px' }}>🏫 {org.name}</span>
+                        <span className="badge badge-outline" style={{ fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
+                          Code: <strong>{org.code}</strong>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '12px', marginBottom: 0 }}>
+                Click on any school name above to view its registered students and teachers roster.
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Organizations Card */}
-        <div className="card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 className="card-header-title">Organizations</h3>
-            <Link to="/organizations" className="btn btn-sm btn-outline"><HiOutlineOfficeBuilding /> Manage</Link>
-          </div>
-          <div className="card-body">
-            <div className="detail-grid">
-              <div className="detail-item">
-                <span className="detail-label">Total Orgs</span>
-                <span className="detail-value"><strong>{loading ? '...' : orgStats.total}</strong></span>
+          {/* Active Classes card */}
+          {stats.classes.length > 0 && (
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-header-title">Active Classes ({stats.classes.length})</h3>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">Active</span>
-                <span className="detail-value"><span className="badge badge-accent">{loading ? '...' : orgStats.active}</span></span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Inactive</span>
-                <span className="detail-value">
-                  <span className="badge badge-outline">{loading ? '...' : (orgStats.total - orgStats.active)}</span>
-                </span>
+              <div className="card-body">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {stats.classes.map((cls, i) => (
+                    <span key={i} className="badge badge-outline" style={{ fontSize: '13px', padding: '6px 12px' }}>{cls}</span>
+                  ))}
+                </div>
               </div>
             </div>
-            <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '12px' }}>
-              Teachers &amp; students register under these organizations using the join code.
-            </p>
-          </div>
+          )}
         </div>
 
-        {/* Account Info */}
-        <div className="card">
-          <div className="card-header"><h3 className="card-header-title">Account Info</h3></div>
-          <div className="card-body">
-            <div className="detail-grid">
-              <div className="detail-item">
-                <span className="detail-label">Name</span>
-                <span className="detail-value"><strong>{user?.name}</strong></span>
+        {/* Right column — Quick tools and profile */}
+        <div className="admin-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Quick Actions */}
+          <div className="card">
+            <div className="card-header"><h3 className="card-header-title">Quick Actions</h3></div>
+            <div className="card-body">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <Link to="/students" state={{ openAdd: true }} className="btn btn-accent" style={{ justifyContent: 'flex-start' }}>
+                  <HiOutlinePlus /> Add Student
+                </Link>
+                <Link to="/teachers" state={{ openAdd: true }} className="btn btn-primary" style={{ justifyContent: 'flex-start' }}>
+                  <HiOutlinePlus /> Add Teacher
+                </Link>
+                <Link to="/attendance" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>
+                  <HiOutlineClipboardCheck /> Mark Attendance
+                </Link>
+                <Link to="/organizations" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>
+                  <HiOutlineOfficeBuilding /> Manage Organizations
+                </Link>
+                <Link to="/settings" className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>
+                  <HiOutlineCog /> Settings
+                </Link>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">Role</span>
-                <span className="detail-value"><span className="badge badge-primary">{user?.role}</span></span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Status</span>
-                <span className="detail-value"><span className="badge badge-accent">{user?.isActive ? 'Active' : 'Inactive'}</span></span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Email</span>
-                <span className="detail-value" style={{ fontSize: 'var(--font-size-xs)' }}>{user?.email}</span>
-              </div>
-              <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
-                <span className="detail-label">Last Login</span>
-                <span className="detail-value">{user?.lastLogin ? new Date(user.lastLogin).toLocaleString('en-IN') : 'First session'}</span>
+            </div>
+          </div>
+
+          {/* Account Info */}
+          <div className="card">
+            <div className="card-header"><h3 className="card-header-title">Admin Account Profile</h3></div>
+            <div className="card-body">
+              <div className="detail-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Name</span>
+                  <span className="detail-value"><strong>{user?.name}</strong></span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Role</span>
+                  <span className="detail-value"><span className="badge badge-primary">{user?.role}</span></span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Status</span>
+                  <span className="detail-value"><span className="badge badge-accent">{user?.isActive ? 'Active' : 'Inactive'}</span></span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Email</span>
+                  <span className="detail-value" style={{ fontSize: 'var(--font-size-xs)' }}>{user?.email}</span>
+                </div>
+                <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                  <span className="detail-label">Last Login</span>
+                  <span className="detail-value">{user?.lastLogin ? new Date(user.lastLogin).toLocaleString('en-IN') : 'First session'}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* ── Classes Active ── */}
-      {stats.classes.length > 0 && (
-        <div className="section">
-          <h3 className="section-group-title">Active Classes ({stats.classes.length})</h3>
-          <div className="card">
-            <div className="card-body">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {stats.classes.map((cls, i) => (
-                  <span key={i} className="badge badge-outline" style={{ fontSize: '14px', padding: '8px 14px' }}>{cls}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+      {selectedOrg && (
+        <OrganizationDetailModal
+          organization={selectedOrg}
+          onClose={() => setSelectedOrg(null)}
+        />
       )}
     </div>
   );

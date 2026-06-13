@@ -62,6 +62,7 @@ const protect = (req, res, next) => {
       id: decoded.id,
       role: decoded.role,
       email: decoded.email,
+      organization: decoded.organization,
     };
 
     // Proceed to the next middleware/controller

@@ -57,10 +57,10 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           {/* Organization selector — required for teachers & students */}
           <div className="form-group">
-            <label className="form-label" htmlFor="login-org">
-              School / Organization
-              <span style={{ color: 'var(--color-text-muted)', fontWeight: 400, marginLeft: '6px', fontSize: 'var(--font-size-xs)' }}>
-                (required for teachers &amp; students)
+            <label className="form-label" htmlFor="login-org" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+              <span>School / Organization</span>
+              <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
+                Required for Teachers &amp; Students
               </span>
             </label>
             <select

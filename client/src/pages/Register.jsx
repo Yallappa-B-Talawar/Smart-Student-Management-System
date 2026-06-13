@@ -140,8 +140,11 @@ export default function Register() {
           {needsOrg && (
             <>
               <div className="form-group">
-                <label className="form-label" htmlFor="reg-org">
-                  School / Organization <span style={{ color: 'var(--color-danger)' }}>*</span>
+                <label className="form-label" htmlFor="reg-org" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                  <span>School / Organization <span style={{ color: 'var(--color-danger)' }}>*</span></span>
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
+                    Select your institution
+                  </span>
                 </label>
                 <select
                   className="form-select" id="reg-org"
@@ -167,13 +170,16 @@ export default function Register() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="reg-code">
-                  Organization Code <span style={{ color: 'var(--color-danger)' }}>*</span>
+                <label className="form-label" htmlFor="reg-code" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                  <span>Organization Code <span style={{ color: 'var(--color-danger)' }}>*</span></span>
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
+                    5-Letter Join Code
+                  </span>
                 </label>
                 <input
                   className="form-input" id="reg-code"
                   type="text"
-                  placeholder="5-letter code from your admin (e.g. SCHOL)"
+                  placeholder="e.g. SCHOL"
                   value={form.organizationCode}
                   onChange={e => setForm({ ...form, organizationCode: e.target.value.toUpperCase().slice(0, 5) })}
                   required={needsOrg}

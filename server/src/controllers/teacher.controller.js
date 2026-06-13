@@ -5,12 +5,40 @@ const teacherService = require("../services/teacher.service");
 const Teacher = require("../models/Teacher");
 
 const create = asyncHandler(async (req, res) => {
+  const orgService = require("../services/organization.service");
+
+  if (!req.body.organizationId) {
+    throw new ApiError(400, "Organization selection is required.");
+  }
+  if (!req.body.organizationCode) {
+    throw new ApiError(400, "Organization code is required.");
+  }
+  const org = await orgService.verifyOrganization(req.body.organizationId, req.body.organizationCode);
+  req.body.organization = org._id;
+
   const teacher = await teacherService.createTeacher(req.body);
   const response = new ApiResponse(201, "Teacher created successfully", teacher);
   res.status(response.statusCode).json(response);
 });
 
 const getAll = asyncHandler(async (req, res) => {
+  const User = require("../models/User");
+  let organizationId = req.user.organization;
+  if (!organizationId) {
+    const user = await User.findById(req.user.id);
+    if (user) organizationId = user.organization;
+  }
+  
+  if (req.user.role === "admin") {
+    if (req.query.organization) {
+      // Keep requested organization
+    } else if (organizationId) {
+      req.query.organization = organizationId;
+    }
+  } else if (organizationId) {
+    req.query.organization = organizationId;
+  }
+
   const result = await teacherService.getAllTeachers(req.query);
   const response = new ApiResponse(200, "Teachers fetched", result);
   res.status(response.statusCode).json(response);
@@ -23,6 +51,22 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
+  const orgService = require("../services/organization.service");
+
+  if (req.user.role === "admin") {
+    if (req.body.organizationId) {
+      if (!req.body.organizationCode) {
+        throw new ApiError(400, "Organization code is required when updating organization.");
+      }
+      const org = await orgService.verifyOrganization(req.body.organizationId, req.body.organizationCode);
+      req.body.organization = org._id;
+    }
+  } else {
+    delete req.body.organization;
+    delete req.body.organizationId;
+    delete req.body.organizationCode;
+  }
+
   const teacher = await teacherService.updateTeacher(req.params.id, req.body);
   const response = new ApiResponse(200, "Teacher updated", teacher);
   res.status(response.statusCode).json(response);
@@ -35,7 +79,14 @@ const remove = asyncHandler(async (req, res) => {
 });
 
 const getStats = asyncHandler(async (req, res) => {
-  const stats = await teacherService.getTeacherStats();
+  const User = require("../models/User");
+  let organizationId = req.user.organization;
+  if (!organizationId) {
+    const user = await User.findById(req.user.id);
+    if (user) organizationId = user.organization;
+  }
+
+  const stats = await teacherService.getTeacherStats(organizationId);
   const response = new ApiResponse(200, "Teacher stats", stats);
   res.status(response.statusCode).json(response);
 });
@@ -45,7 +96,7 @@ const getStats = asyncHandler(async (req, res) => {
  * Matches logged-in user's email to their Teacher document
  */
 const getMyProfile = asyncHandler(async (req, res) => {
-  const teacher = await Teacher.findOne({ email: req.user.email });
+  const teacher = await Teacher.findOne({ email: req.user.email }).populate("organization", "name");
   if (!teacher) {
     throw new ApiError(404, "Teacher profile not found. Please contact admin.");
   }

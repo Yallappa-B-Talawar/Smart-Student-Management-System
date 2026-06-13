@@ -1,6 +1,8 @@
 const asyncHandler = require("../utils/asyncHandler");
 const ApiResponse = require("../utils/ApiResponse");
+const ApiError = require("../utils/ApiError");
 const studentService = require("../services/student.service");
+const orgService = require("../services/organization.service");
 const Student = require("../models/Student");
 const Teacher = require("../models/Teacher");
 const User = require("../models/User");
@@ -8,19 +10,62 @@ const User = require("../models/User");
 const create = asyncHandler(async (req, res) => {
   // Auto-set who added this student
   req.body.addedBy = req.user.id;
+  
+  if (req.user.role === "admin") {
+    if (!req.body.organizationId) {
+      throw new ApiError(400, "Organization selection is required.");
+    }
+    if (!req.body.organizationCode) {
+      throw new ApiError(400, "Organization code is required.");
+    }
+    const org = await orgService.verifyOrganization(req.body.organizationId, req.body.organizationCode);
+    req.body.organization = org._id;
+  } else {
+    let organizationId = req.user.organization;
+    if (!organizationId) {
+      const creator = await User.findById(req.user.id);
+      if (creator && creator.organization) {
+        organizationId = creator.organization;
+      }
+    }
+    if (organizationId) {
+      req.body.organization = organizationId;
+    }
+  }
+
+  if (!req.body.organization) {
+    throw new ApiError(400, "Organization is required.");
+  }
+
   const student = await studentService.createStudent(req.body);
   const response = new ApiResponse(201, "Student created successfully", student);
   res.status(response.statusCode).json(response);
 });
 
 const getAll = asyncHandler(async (req, res) => {
+  let organizationId = req.user.organization;
+  if (!organizationId) {
+    const user = await User.findById(req.user.id);
+    if (user) organizationId = user.organization;
+  }
+
   // If teacher, filter by their assigned classes
   if (req.user.role === "teacher") {
     const teacher = await Teacher.findOne({ user: req.user.id }) || await Teacher.findOne({ email: req.user.email });
     if (teacher && teacher.classes.length > 0) {
       req.query.classes = teacher.classes;
     }
+    if (organizationId) {
+      req.query.organization = organizationId;
+    }
+  } else if (req.user.role === "admin") {
+    if (req.query.organization) {
+      // Keep requested organization
+    } else if (organizationId) {
+      req.query.organization = organizationId;
+    }
   }
+
   const result = await studentService.getAllStudents(req.query);
   const response = new ApiResponse(200, "Students fetched", result);
   res.status(response.statusCode).json(response);
@@ -33,6 +78,20 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
+  if (req.user.role === "admin") {
+    if (req.body.organizationId) {
+      if (!req.body.organizationCode) {
+        throw new ApiError(400, "Organization code is required when updating organization.");
+      }
+      const org = await orgService.verifyOrganization(req.body.organizationId, req.body.organizationCode);
+      req.body.organization = org._id;
+    }
+  } else {
+    delete req.body.organization;
+    delete req.body.organizationId;
+    delete req.body.organizationCode;
+  }
+
   const student = await studentService.updateStudent(req.params.id, req.body);
   const response = new ApiResponse(200, "Student updated", student);
   res.status(response.statusCode).json(response);
@@ -46,13 +105,19 @@ const remove = asyncHandler(async (req, res) => {
 
 const getStats = asyncHandler(async (req, res) => {
   let classFilter = null;
+  let organizationId = req.user.organization;
+  if (!organizationId) {
+    const user = await User.findById(req.user.id);
+    if (user) organizationId = user.organization;
+  }
+
   if (req.user.role === "teacher") {
     const teacher = await Teacher.findOne({ user: req.user.id }) || await Teacher.findOne({ email: req.user.email });
     if (teacher && teacher.classes.length > 0) {
       classFilter = teacher.classes;
     }
   }
-  const stats = await studentService.getStudentStats(classFilter);
+  const stats = await studentService.getStudentStats(classFilter, organizationId);
   const response = new ApiResponse(200, "Student stats", stats);
   res.status(response.statusCode).json(response);
 });
@@ -64,7 +129,7 @@ const getStats = asyncHandler(async (req, res) => {
  */
 const getMyProfile = asyncHandler(async (req, res) => {
   // Find student record by matching email
-  const student = await Student.findOne({ email: req.user.email });
+  const student = await Student.findOne({ email: req.user.email }).populate("organization", "name");
   if (!student) {
     const response = new ApiResponse(200, "No student profile linked yet", { student: null, teachers: [] });
     return res.status(response.statusCode).json(response);

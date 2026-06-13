@@ -50,11 +50,11 @@ function App() {
                 }
               />
 
-              {/* Teachers — admin and student (read-only for student) */}
+              {/* Teachers — admin, teacher, and student (read-only for teacher/student) */}
               <Route
                 path="teachers"
                 element={
-                  <RoleGuard allowed={['admin', 'student']}>
+                  <RoleGuard allowed={['admin', 'teacher', 'student']}>
                     <Teachers />
                   </RoleGuard>
                 }

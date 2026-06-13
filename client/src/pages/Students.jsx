@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   HiOutlineSearch,
   HiOutlinePlus,
@@ -6,11 +7,11 @@ import {
   HiOutlineTrash,
   HiOutlineX,
 } from 'react-icons/hi';
-import { studentsAPI } from '../services/api';
+import { studentsAPI, organizationsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
 
-const emptyForm = { name: '', email: '', rollNo: '', class: '', phone: '', address: '', section: '', parentName: '', parentPhone: '', gender: '' };
+const emptyForm = { name: '', email: '', rollNo: '', class: '', phone: '', address: '', section: '', parentName: '', parentPhone: '', gender: '', organizationId: '', organizationCode: '' };
 
 export default function Students() {
   const { user } = useAuth();
@@ -29,6 +30,25 @@ export default function Students() {
   const [formLoading, setFormLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [viewStudent, setViewStudent] = useState(null);
+  const [orgs, setOrgs] = useState([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      openCreateForm();
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      organizationsAPI.getAll()
+        .then(res => setOrgs(res.data.data || []))
+        .catch(() => setOrgs([]))
+        .finally(() => setOrgsLoading(false));
+    }
+  }, [isAdmin]);
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
@@ -74,6 +94,10 @@ export default function Students() {
 
   const openEditForm = (student) => {
     setEditingId(student._id);
+    const orgId = student.organization?._id || student.organization || '';
+    const matchedOrg = orgs.find(o => o._id === orgId);
+    const orgCode = matchedOrg?.code || '';
+
     setFormData({
       name: student.name || '',
       email: student.email || '',
@@ -85,6 +109,8 @@ export default function Students() {
       parentName: student.parentName || '',
       parentPhone: student.parentPhone || '',
       gender: student.gender || '',
+      organizationId: orgId,
+      organizationCode: orgCode,
     });
     setFormError('');
     setShowForm(true);
@@ -101,6 +127,18 @@ export default function Students() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    
+    if (isAdmin) {
+      if (!formData.organizationId) {
+        setFormError('Organization selection is required.');
+        return;
+      }
+      if (formData.organizationCode.trim().length !== 5) {
+        setFormError('Organization code must be exactly 5 characters.');
+        return;
+      }
+    }
+
     setFormLoading(true);
     try {
       if (editingId) {
@@ -172,6 +210,31 @@ export default function Students() {
             {formError && <div className="auth-error" style={{ marginBottom: '16px' }}>{formError}</div>}
             <form onSubmit={handleSubmit}>
               <div className="grid-2">
+                {isAdmin && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="s-org">School / Organization *</label>
+                      <select className="form-select" id="s-org" value={formData.organizationId} onChange={e => {
+                        const orgId = e.target.value;
+                        const matchedOrg = orgs.find(o => o._id === orgId);
+                        setFormData(p => ({
+                          ...p,
+                          organizationId: orgId,
+                          organizationCode: matchedOrg?.code || ''
+                        }));
+                      }} required>
+                        <option value="">{orgsLoading ? 'Loading schools...' : '— Select school —'}</option>
+                        {orgs.map(org => (
+                          <option key={org._id} value={org._id}>{org.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="s-code">Organization Code *</label>
+                      <input className="form-input" id="s-code" type="text" placeholder="e.g. SCHOL" value={formData.organizationCode} onChange={e => f('organizationCode', e.target.value.toUpperCase().slice(0, 5))} required maxLength={5} style={{ letterSpacing: '4px', fontWeight: 700, textTransform: 'uppercase' }} />
+                    </div>
+                  </>
+                )}
                 <div className="form-group">
                   <label className="form-label" htmlFor="s-name">Full Name *</label>
                   <input className="form-input" id="s-name" type="text" required value={formData.name} onChange={e => f('name', e.target.value)} placeholder="Student name" />
@@ -278,11 +341,11 @@ export default function Students() {
         <div className="table-wrapper">
           <table className="table table-responsive">
             <thead>
-              <tr><th>Roll No</th><th>Name</th><th>Class</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Roll No</th><th>Name</th><th>School</th><th>Class</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
-                <tr><td colSpan="7">
+                <tr><td colSpan="8">
                   <div className="empty-state">
                     <div className="empty-state-icon">👩‍🎓</div>
                     <div className="empty-state-title">No students found</div>
@@ -293,6 +356,7 @@ export default function Students() {
                 <tr key={s._id}>
                   <td data-label="Roll No"><strong>{s.rollNo}</strong></td>
                   <td data-label="Name">{s.name}</td>
+                  <td data-label="School">{s.organization?.name || '—'}</td>
                   <td data-label="Class"><span className="badge badge-outline">{s.class}</span></td>
                   <td data-label="Email">{s.email}</td>
                   <td data-label="Phone">{s.phone || '-'}</td>
@@ -323,6 +387,7 @@ export default function Students() {
               <div className="detail-grid">
                 <div className="detail-item"><span className="detail-label">Roll No</span><span className="detail-value">{viewStudent.rollNo}</span></div>
                 <div className="detail-item"><span className="detail-label">Name</span><span className="detail-value">{viewStudent.name}</span></div>
+                <div className="detail-item"><span className="detail-label">School</span><span className="detail-value">{viewStudent.organization?.name || '—'}</span></div>
                 <div className="detail-item"><span className="detail-label">Email</span><span className="detail-value">{viewStudent.email}</span></div>
                 <div className="detail-item"><span className="detail-label">Class</span><span className="detail-value">{viewStudent.class} {viewStudent.section && `- ${viewStudent.section}`}</span></div>
                 <div className="detail-item"><span className="detail-label">Gender</span><span className="detail-value">{viewStudent.gender || '-'}</span></div>

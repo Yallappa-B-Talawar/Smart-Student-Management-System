@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineRefresh, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import { organizationsAPI } from '../services/api';
+import OrganizationDetailModal from '../components/ui/OrganizationDetailModal';
 import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
 
@@ -16,6 +17,7 @@ export default function Organizations() {
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [selectedOrg, setSelectedOrg] = useState(null);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -288,6 +290,9 @@ export default function Organizations() {
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-sm btn-outline" onClick={() => setSelectedOrg(org)} style={{ flex: 1.5 }}>
+                    👁️ View Roster
+                  </button>
                   <button className="btn btn-sm btn-outline" onClick={() => openEdit(org)} style={{ flex: 1 }}>
                     <HiOutlinePencil /> Edit
                   </button>
@@ -303,6 +308,13 @@ export default function Organizations() {
 
       {/* Toast */}
       {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
+
+      {selectedOrg && (
+        <OrganizationDetailModal
+          organization={selectedOrg}
+          onClose={() => setSelectedOrg(null)}
+        />
+      )}
     </div>
   );
 }

@@ -53,6 +53,11 @@ const teacherSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -60,5 +65,6 @@ const teacherSchema = new mongoose.Schema(
 );
 
 teacherSchema.index({ status: 1 });
+teacherSchema.index({ organization: 1 });
 
 module.exports = mongoose.model("Teacher", teacherSchema);

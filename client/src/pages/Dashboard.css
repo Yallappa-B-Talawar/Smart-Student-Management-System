@@ -88,13 +88,22 @@
 .activity-meta { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); flex-shrink: 0; }
 .activity-time { font-size: var(--font-size-xs); color: var(--color-text-muted); display: flex; align-items: center; gap: var(--space-1); }
 
+.admin-dashboard-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .admin-dashboard-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+}
+
 /* ── Mobile Adjustments ── */
 @media (max-width: 768px) {
   .welcome-text h2 { font-size: var(--font-size-xl); }
   .activity-meta { display: none; }
-
-  /* Admin 3-column grid collapses to 1 on mobile */
-  .section > [style*="grid-template-columns: 1fr 1fr 1fr"] {
-    grid-template-columns: 1fr !important;
-  }
 }

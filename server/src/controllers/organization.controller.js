@@ -2,9 +2,27 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiResponse = require("../utils/ApiResponse");
 const orgService = require("../services/organization.service");
 
+const jwt = require("jsonwebtoken");
+const env = require("../config/env");
+
 // Public — no auth required, used by registration page
 const getAll = asyncHandler(async (req, res) => {
-  const orgs = await orgService.getAllOrganizations(false);
+  let isAdmin = false;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    try {
+      const decoded = jwt.verify(token, env.jwt.accessSecret);
+      if (decoded && decoded.role === "admin") {
+        isAdmin = true;
+      }
+    } catch (err) {
+      // Ignore verification errors for public access
+    }
+  }
+
+  // If requester is admin, include inactive orgs and join codes
+  const orgs = await orgService.getAllOrganizations(isAdmin, isAdmin);
   const response = new ApiResponse(200, "Organizations fetched", orgs);
   res.status(response.statusCode).json(response);
 });

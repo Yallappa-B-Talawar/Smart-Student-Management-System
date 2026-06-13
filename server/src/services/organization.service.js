@@ -19,10 +19,14 @@ const createOrganization = async (data, createdBy) => {
   return await Organization.create({ ...data, code, createdBy });
 };
 
-// Public — anyone can fetch active orgs (for registration dropdown)
-const getAllOrganizations = async (includeInactive = false) => {
+// Public — anyone can fetch active orgs (for registration dropdown), Admin can include codes and inactive orgs
+const getAllOrganizations = async (includeInactive = false, includeCode = false) => {
   const filter = includeInactive ? {} : { status: "active" };
-  return await Organization.find(filter).sort({ name: 1 }).select("_id name description address status createdAt");
+  let selectFields = "_id name description address status createdAt";
+  if (includeCode) {
+    selectFields += " code";
+  }
+  return await Organization.find(filter).sort({ name: 1 }).select(selectFields);
 };
 
 const getOrganizationById = async (id) => {

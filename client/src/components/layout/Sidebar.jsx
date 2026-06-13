@@ -34,8 +34,9 @@ export default function Sidebar({ isOpen, onClose }) {
   }
 
   if (role === 'teacher') {
-    // Teachers can view students and mark attendance — NOT their own teacher list
+    // Teachers can view students, teachers directory, and mark attendance
     navItems.push({ path: '/students',   label: 'Students',       icon: HiOutlineUserGroup });
+    navItems.push({ path: '/teachers',   label: 'Teachers',       icon: HiOutlineAcademicCap });
     navItems.push({ path: '/attendance', label: 'Attendance',     icon: HiOutlineClipboardCheck });
   }
 

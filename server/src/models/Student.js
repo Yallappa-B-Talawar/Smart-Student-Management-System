@@ -71,6 +71,11 @@ const studentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -79,5 +84,6 @@ const studentSchema = new mongoose.Schema(
 
 studentSchema.index({ class: 1, section: 1 });
 studentSchema.index({ status: 1 });
+studentSchema.index({ organization: 1 });
 
 module.exports = mongoose.model("Student", studentSchema);

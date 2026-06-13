@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineX, HiOutlineRefresh } from 'react-icons/hi';
-import { teachersAPI } from '../services/api';
+import { teachersAPI, organizationsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
 
-const emptyForm = { name: '', email: '', subject: '', classes: '', phone: '', qualification: '', experience: '', address: '' };
+const emptyForm = { name: '', email: '', subject: '', classes: '', phone: '', qualification: '', experience: '', address: '', organizationId: '', organizationCode: '' };
 
 export default function Teachers() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const isStudent = user?.role === 'student';
+  const isReadOnly = user?.role === 'student' || user?.role === 'teacher';
 
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,25 @@ export default function Teachers() {
   const [formLoading, setFormLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [viewTeacher, setViewTeacher] = useState(null);
+  const [orgs, setOrgs] = useState([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      openCreateForm();
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      organizationsAPI.getAll()
+        .then(res => setOrgs(res.data.data || []))
+        .catch(() => setOrgs([]))
+        .finally(() => setOrgsLoading(false));
+    }
+  }, [isAdmin]);
 
   const fetchTeachers = useCallback(async () => {
     setLoading(true);
@@ -57,6 +77,10 @@ export default function Teachers() {
 
   const openEditForm = (teacher) => {
     setEditingId(teacher._id);
+    const orgId = teacher.organization?._id || teacher.organization || '';
+    const matchedOrg = orgs.find(o => o._id === orgId);
+    const orgCode = matchedOrg?.code || '';
+
     setFormData({
       name: teacher.name || '',
       email: teacher.email || '',
@@ -66,6 +90,8 @@ export default function Teachers() {
       qualification: teacher.qualification || '',
       experience: teacher.experience || '',
       address: teacher.address || '',
+      organizationId: orgId,
+      organizationCode: orgCode,
     });
     setFormError('');
     setShowForm(true);
@@ -82,6 +108,16 @@ export default function Teachers() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    
+    if (!formData.organizationId) {
+      setFormError('Organization selection is required.');
+      return;
+    }
+    if (formData.organizationCode.trim().length !== 5) {
+      setFormError('Organization code must be exactly 5 characters.');
+      return;
+    }
+
     setFormLoading(true);
     try {
       const payload = {
@@ -116,10 +152,9 @@ export default function Teachers() {
 
   const f = (key, val) => setFormData(p => ({ ...p, [key]: val }));
 
+  // READ-ONLY VIEW (Students & Teachers) — teacher directory (card layout)
   // ──────────────────────────────────────────────────────────────────
-  // STUDENT VIEW — read-only teacher directory (card layout)
-  // ──────────────────────────────────────────────────────────────────
-  if (isStudent) {
+  if (isReadOnly) {
     return (
       <div>
         <div className="section-header">
@@ -182,9 +217,10 @@ export default function Teachers() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: 'var(--font-size-base)' }}>{t.name}</div>
-                      {t.subject && (
-                        <span className="badge badge-primary" style={{ fontSize: '11px', marginTop: '4px' }}>{t.subject}</span>
-                      )}
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px', alignItems: 'center' }}>
+                        {t.subject && <span className="badge badge-primary" style={{ fontSize: '11px' }}>{t.subject}</span>}
+                        {t.organization?.name && <span className="badge badge-outline" style={{ fontSize: '11px', textTransform: 'none', fontWeight: 600 }}>🏫 {t.organization.name}</span>}
+                      </div>
                     </div>
                     <span className={`badge ${t.status === 'active' ? 'badge-accent' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
                       {t.status}
@@ -230,6 +266,7 @@ export default function Teachers() {
               <div className="card-body">
                 <div className="detail-grid">
                   <div className="detail-item"><span className="detail-label">Name</span><span className="detail-value">{viewTeacher.name}</span></div>
+                  <div className="detail-item"><span className="detail-label">School</span><span className="detail-value">{viewTeacher.organization?.name || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Subject</span><span className="detail-value">{viewTeacher.subject || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Qualification</span><span className="detail-value">{viewTeacher.qualification || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Experience</span><span className="detail-value">{viewTeacher.experience ? `${viewTeacher.experience} years` : '—'}</span></div>
@@ -298,6 +335,31 @@ export default function Teachers() {
             {formError && <div className="auth-error" style={{ marginBottom: '16px' }}>{formError}</div>}
             <form onSubmit={handleSubmit}>
               <div className="grid-2">
+                {true && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="t-org">School / Organization *</label>
+                      <select className="form-select" id="t-org" value={formData.organizationId} onChange={e => {
+                        const orgId = e.target.value;
+                        const matchedOrg = orgs.find(o => o._id === orgId);
+                        setFormData(p => ({
+                          ...p,
+                          organizationId: orgId,
+                          organizationCode: matchedOrg?.code || ''
+                        }));
+                      }} required>
+                        <option value="">{orgsLoading ? 'Loading schools...' : '— Select school —'}</option>
+                        {orgs.map(org => (
+                          <option key={org._id} value={org._id}>{org.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="t-code">Organization Code *</label>
+                      <input className="form-input" id="t-code" type="text" placeholder="e.g. SCHOL" value={formData.organizationCode} onChange={e => f('organizationCode', e.target.value.toUpperCase().slice(0, 5))} required maxLength={5} style={{ letterSpacing: '4px', fontWeight: 700, textTransform: 'uppercase' }} />
+                    </div>
+                  </>
+                )}
                 <div className="form-group"><label className="form-label" htmlFor="t-name">Name *</label><input className="form-input" id="t-name" required value={formData.name} onChange={e => f('name', e.target.value)} placeholder="Full name" /></div>
                 <div className="form-group"><label className="form-label" htmlFor="t-email">Email *</label><input className="form-input" id="t-email" type="email" required value={formData.email} onChange={e => f('email', e.target.value)} placeholder="Email" /></div>
                 <div className="form-group"><label className="form-label" htmlFor="t-subject">Subject *</label><input className="form-input" id="t-subject" required value={formData.subject} onChange={e => f('subject', e.target.value)} placeholder="e.g. Mathematics" /></div>
@@ -324,13 +386,14 @@ export default function Teachers() {
       ) : (
         <div className="table-wrapper">
           <table className="table table-responsive">
-            <thead><tr><th>Name</th><th>Subject</th><th>Classes</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>School</th><th>Subject</th><th>Classes</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {teachers.length === 0 ? (
-                <tr><td colSpan="6"><div className="empty-state"><div className="empty-state-icon">👨‍🏫</div><div className="empty-state-title">No teachers found</div><p className="empty-state-text">Click "Add Teacher" to add faculty.</p></div></td></tr>
+                <tr><td colSpan="7"><div className="empty-state"><div className="empty-state-icon">👨‍🏫</div><div className="empty-state-title">No teachers found</div><p className="empty-state-text">Click "Add Teacher" to add faculty.</p></div></td></tr>
               ) : teachers.map(t => (
                 <tr key={t._id}>
                   <td data-label="Name"><strong>{t.name}</strong></td>
+                  <td data-label="School">{t.organization?.name || '—'}</td>
                   <td data-label="Subject">{t.subject}</td>
                   <td data-label="Classes"><span className="badge badge-outline">{(t.classes || []).join(', ') || '-'}</span></td>
                   <td data-label="Phone">{t.phone || '-'}</td>
@@ -360,6 +423,7 @@ export default function Teachers() {
             <div className="card-body">
               <div className="detail-grid">
                 <div className="detail-item"><span className="detail-label">Name</span><span className="detail-value">{viewTeacher.name}</span></div>
+                <div className="detail-item"><span className="detail-label">School</span><span className="detail-value">{viewTeacher.organization?.name || '—'}</span></div>
                 <div className="detail-item"><span className="detail-label">Email</span><span className="detail-value">{viewTeacher.email}</span></div>
                 <div className="detail-item"><span className="detail-label">Subject</span><span className="detail-value">{viewTeacher.subject}</span></div>
                 <div className="detail-item"><span className="detail-label">Classes</span><span className="detail-value">{(viewTeacher.classes || []).join(', ') || '-'}</span></div>

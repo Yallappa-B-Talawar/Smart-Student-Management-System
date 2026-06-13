@@ -87,7 +87,39 @@ const registerUser = async (userData) => {
         subject: "Not set",
         classes: [],
         status: "active",
+        organization: organizationId,
       });
+    } else {
+      existingTeacher.user = user._id;
+      if (organizationId) {
+        existingTeacher.organization = organizationId;
+      }
+      await existingTeacher.save();
+    }
+  }
+
+  // Step 4.5: Auto-create Student profile for students
+  if (user.role === "student") {
+    const existingStudent = await Student.findOne({ email: user.email });
+    if (!existingStudent) {
+      const totalStudents = await Student.countDocuments();
+      const rollNo = `STU-${String(totalStudents + 1).padStart(4, "0")}`;
+      await Student.create({
+        user: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || "",
+        rollNo,
+        class: "Not assigned",
+        status: "active",
+        organization: organizationId,
+      });
+    } else {
+      existingStudent.user = user._id;
+      if (organizationId) {
+        existingStudent.organization = organizationId;
+      }
+      await existingStudent.save();
     }
   }
 
