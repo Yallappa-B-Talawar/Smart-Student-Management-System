@@ -20,32 +20,29 @@ export default function Sidebar({ isOpen, onClose }) {
     onClose();
   };
 
-  // Build nav items based on role
+  // Build nav items based on role — each item matches exactly what the role can access
   const navItems = [];
 
   // Dashboard — everyone
   navItems.push({ path: '/', label: 'Dashboard', icon: HiOutlineViewGrid });
 
-  // Students — admin and teacher can see list, student sees only "My Profile" (via Settings)
-  if (role === 'admin' || role === 'teacher') {
-    navItems.push({ path: '/students', label: 'Students', icon: HiOutlineUserGroup });
-  }
-
-  // Teachers — admin and student can view teacher directory
-  if (role === 'admin' || role === 'student') {
-    navItems.push({ path: '/teachers', label: 'Teachers', icon: HiOutlineAcademicCap });
-  }
-
-  // Organizations — admin only
   if (role === 'admin') {
-    navItems.push({ path: '/organizations', label: 'Organizations', icon: HiOutlineOfficeBuilding });
+    navItems.push({ path: '/students',      label: 'Students',       icon: HiOutlineUserGroup });
+    navItems.push({ path: '/teachers',      label: 'Teachers',       icon: HiOutlineAcademicCap });
+    navItems.push({ path: '/attendance',    label: 'Attendance',     icon: HiOutlineClipboardCheck });
+    navItems.push({ path: '/organizations', label: 'Organizations',  icon: HiOutlineOfficeBuilding });
   }
 
-  // Attendance — different label per role
-  if (role === 'admin' || role === 'teacher') {
-    navItems.push({ path: '/attendance', label: 'Attendance', icon: HiOutlineClipboardCheck });
-  } else if (role === 'student') {
-    navItems.push({ path: '/my-attendance', label: 'My Attendance', icon: HiOutlineClipboardCheck });
+  if (role === 'teacher') {
+    // Teachers can view students and mark attendance — NOT their own teacher list
+    navItems.push({ path: '/students',   label: 'Students',       icon: HiOutlineUserGroup });
+    navItems.push({ path: '/attendance', label: 'Attendance',     icon: HiOutlineClipboardCheck });
+  }
+
+  if (role === 'student') {
+    // Students can view teachers (read-only directory) and their own attendance
+    navItems.push({ path: '/teachers',      label: 'Teachers',        icon: HiOutlineAcademicCap });
+    navItems.push({ path: '/my-attendance', label: 'My Attendance',   icon: HiOutlineClipboardCheck });
   }
 
   return (
@@ -72,9 +69,7 @@ export default function Sidebar({ isOpen, onClose }) {
               key={path}
               to={path}
               end={path === '/'}
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'active' : ''}`
-              }
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
               onClick={onClose}
             >
               <span className="sidebar-link-icon"><Icon /></span>
@@ -82,7 +77,7 @@ export default function Sidebar({ isOpen, onClose }) {
             </NavLink>
           ))}
 
-          <div className="sidebar-section-label" style={{ marginTop: 'auto' }}>System</div>
+          <div className="sidebar-section-label" style={{ marginTop: 'auto' }}>Account</div>
           <NavLink to="/settings" className="sidebar-link" onClick={onClose}>
             <span className="sidebar-link-icon"><HiOutlineCog /></span>
             Settings

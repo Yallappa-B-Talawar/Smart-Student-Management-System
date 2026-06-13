@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineX } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineX, HiOutlineRefresh } from 'react-icons/hi';
 import { teachersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import '../components/ui/Components.css';
@@ -9,6 +9,8 @@ const emptyForm = { name: '', email: '', subject: '', classes: '', phone: '', qu
 export default function Teachers() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isStudent = user?.role === 'student';
+
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, active: 0, onLeave: 0 });
@@ -103,9 +105,7 @@ export default function Teachers() {
       } else {
         setFormError(data?.message || 'Operation failed');
       }
-    } finally {
-      setFormLoading(false);
-    }
+    } finally { setFormLoading(false); }
   };
 
   const handleDelete = async (id, name) => {
@@ -116,17 +116,162 @@ export default function Teachers() {
 
   const f = (key, val) => setFormData(p => ({ ...p, [key]: val }));
 
+  // ──────────────────────────────────────────────────────────────────
+  // STUDENT VIEW — read-only teacher directory (card layout)
+  // ──────────────────────────────────────────────────────────────────
+  if (isStudent) {
+    return (
+      <div>
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">
+              Teachers Directory
+              <span className="badge badge-outline" style={{ marginLeft: '10px', fontSize: '14px', verticalAlign: 'middle' }}>
+                {teachers.length}
+              </span>
+            </h2>
+            <p className="section-subtitle">Browse your school's faculty</p>
+          </div>
+          <button className="btn btn-outline" onClick={fetchTeachers} title="Refresh">
+            <HiOutlineRefresh />
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid-stats section" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div className="stat-card">
+            <div className="stat-card-icon primary">👥</div>
+            <div className="stat-card-info"><div className="stat-card-label">Total Faculty</div><div className="stat-card-value">{stats.total}</div></div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-icon accent">✅</div>
+            <div className="stat-card-info"><div className="stat-card-label">Active</div><div className="stat-card-value">{stats.active}</div></div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-icon danger">🏖️</div>
+            <div className="stat-card-info"><div className="stat-card-label">On Leave</div><div className="stat-card-value">{stats.onLeave}</div></div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="spinner-wrapper"><div className="spinner" /><span className="spinner-text">Loading teachers...</span></div>
+        ) : teachers.length === 0 ? (
+          <div className="card section">
+            <div className="card-body">
+              <div className="empty-state">
+                <div className="empty-state-icon">👨‍🏫</div>
+                <div className="empty-state-title">No teachers found</div>
+                <p className="empty-state-text">Teachers will appear here once they are added by your admin.</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+            {teachers.map(t => (
+              <div className="card" key={t._id} style={{ cursor: 'pointer' }} onClick={() => setViewTeacher(t)}>
+                <div className="card-body">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                    <div style={{
+                      width: '48px', height: '48px', flexShrink: 0,
+                      background: 'var(--color-primary)', color: 'var(--color-text-on-primary)',
+                      border: '3px solid var(--border-color)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 800, fontSize: '22px',
+                    }}>
+                      {t.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 'var(--font-size-base)' }}>{t.name}</div>
+                      {t.subject && (
+                        <span className="badge badge-primary" style={{ fontSize: '11px', marginTop: '4px' }}>{t.subject}</span>
+                      )}
+                    </div>
+                    <span className={`badge ${t.status === 'active' ? 'badge-accent' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
+                      {t.status}
+                    </span>
+                  </div>
+                  <div className="detail-grid" style={{ gap: '8px' }}>
+                    {t.qualification && (
+                      <div className="detail-item">
+                        <span className="detail-label">Qualification</span>
+                        <span className="detail-value">{t.qualification}</span>
+                      </div>
+                    )}
+                    {t.experience > 0 && (
+                      <div className="detail-item">
+                        <span className="detail-label">Experience</span>
+                        <span className="detail-value">{t.experience} years</span>
+                      </div>
+                    )}
+                    {t.classes?.length > 0 && (
+                      <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                        <span className="detail-label">Classes</span>
+                        <span className="detail-value" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {t.classes.map((cls, i) => <span key={i} className="badge badge-outline" style={{ fontSize: '11px' }}>{cls}</span>)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '10px' }}>Click to view details</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* View Modal — read only */}
+        {viewTeacher && (
+          <div className="modal-overlay" onClick={() => setViewTeacher(null)}>
+            <div className="modal-card" onClick={e => e.stopPropagation()}>
+              <div className="card-header">
+                <h3 className="card-header-title">Teacher Details</h3>
+                <button className="btn btn-sm btn-outline" onClick={() => setViewTeacher(null)}><HiOutlineX /></button>
+              </div>
+              <div className="card-body">
+                <div className="detail-grid">
+                  <div className="detail-item"><span className="detail-label">Name</span><span className="detail-value">{viewTeacher.name}</span></div>
+                  <div className="detail-item"><span className="detail-label">Subject</span><span className="detail-value">{viewTeacher.subject || '—'}</span></div>
+                  <div className="detail-item"><span className="detail-label">Qualification</span><span className="detail-value">{viewTeacher.qualification || '—'}</span></div>
+                  <div className="detail-item"><span className="detail-label">Experience</span><span className="detail-value">{viewTeacher.experience ? `${viewTeacher.experience} years` : '—'}</span></div>
+                  <div className="detail-item"><span className="detail-label">Classes</span><span className="detail-value">{(viewTeacher.classes || []).join(', ') || '—'}</span></div>
+                  <div className="detail-item">
+                    <span className="detail-label">Status</span>
+                    <span className="detail-value"><span className={`badge ${viewTeacher.status === 'active' ? 'badge-accent' : 'badge-danger'}`}>{viewTeacher.status}</span></span>
+                  </div>
+                </div>
+                <button className="btn btn-outline" style={{ marginTop: '16px' }} onClick={() => setViewTeacher(null)}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
+      </div>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────
+  // ADMIN VIEW — full management table
+  // ──────────────────────────────────────────────────────────────────
   return (
     <div>
       <div className="section-header">
         <div>
-          <h2 className="section-title">Teachers</h2>
+          <h2 className="section-title">
+            Teachers
+            <span className="badge badge-outline" style={{ marginLeft: '10px', fontSize: '14px', verticalAlign: 'middle' }}>
+              {teachers.length}
+            </span>
+          </h2>
           <p className="section-subtitle">Manage faculty and class assignments</p>
         </div>
-        {isAdmin && <button className="btn btn-accent" onClick={openCreateForm}><HiOutlinePlus /> Add Teacher</button>}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-outline" onClick={fetchTeachers} title="Refresh"><HiOutlineRefresh /></button>
+          {isAdmin && <button className="btn btn-accent" onClick={openCreateForm}><HiOutlinePlus /> Add Teacher</button>}
+        </div>
       </div>
 
-      {/* ── Stats ── */}
+      {/* Stats */}
       <div className="grid-stats section" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
         <div className="stat-card">
           <div className="stat-card-icon primary">👥</div>
@@ -142,7 +287,7 @@ export default function Teachers() {
         </div>
       </div>
 
-      {/* ── Create / Edit Form ── */}
+      {/* Create / Edit Form */}
       {showForm && (
         <div className="card section">
           <div className="card-header">
@@ -173,7 +318,7 @@ export default function Teachers() {
         </div>
       )}
 
-      {/* ── Table ── */}
+      {/* Table */}
       {loading ? (
         <div className="spinner-wrapper"><div className="spinner" /><span className="spinner-text">Loading teachers...</span></div>
       ) : (
@@ -204,7 +349,7 @@ export default function Teachers() {
         </div>
       )}
 
-      {/* ── View Detail Modal ── */}
+      {/* View Detail Modal */}
       {viewTeacher && (
         <div className="modal-overlay" onClick={() => setViewTeacher(null)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>

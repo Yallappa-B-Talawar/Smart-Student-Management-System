@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import RoleGuard from './components/auth/RoleGuard';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
@@ -27,7 +28,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* Protected routes */}
+            {/* Protected routes — all require login */}
             <Route
               path="/"
               element={
@@ -36,12 +37,60 @@ function App() {
                 </ProtectedRoute>
               }
             >
+              {/* Dashboard — everyone */}
               <Route index element={<Dashboard />} />
-              <Route path="students" element={<Students />} />
-              <Route path="teachers" element={<Teachers />} />
-              <Route path="attendance" element={<Attendance />} />
-              <Route path="my-attendance" element={<MyAttendance />} />
-              <Route path="organizations" element={<Organizations />} />
+
+              {/* Students — admin and teacher only */}
+              <Route
+                path="students"
+                element={
+                  <RoleGuard allowed={['admin', 'teacher']}>
+                    <Students />
+                  </RoleGuard>
+                }
+              />
+
+              {/* Teachers — admin and student (read-only for student) */}
+              <Route
+                path="teachers"
+                element={
+                  <RoleGuard allowed={['admin', 'student']}>
+                    <Teachers />
+                  </RoleGuard>
+                }
+              />
+
+              {/* Attendance (mark) — admin and teacher only */}
+              <Route
+                path="attendance"
+                element={
+                  <RoleGuard allowed={['admin', 'teacher']}>
+                    <Attendance />
+                  </RoleGuard>
+                }
+              />
+
+              {/* My Attendance — student only */}
+              <Route
+                path="my-attendance"
+                element={
+                  <RoleGuard allowed={['student']}>
+                    <MyAttendance />
+                  </RoleGuard>
+                }
+              />
+
+              {/* Organizations — admin only */}
+              <Route
+                path="organizations"
+                element={
+                  <RoleGuard allowed={['admin']}>
+                    <Organizations />
+                  </RoleGuard>
+                }
+              />
+
+              {/* Settings — everyone */}
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
