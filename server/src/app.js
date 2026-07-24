@@ -98,7 +98,7 @@ if (env.isDev) {
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Smart Student Management System API is running",
+    message: "STUDEXA API is running",
     environment: env.nodeEnv,
     timestamp: new Date().toISOString(),
   });

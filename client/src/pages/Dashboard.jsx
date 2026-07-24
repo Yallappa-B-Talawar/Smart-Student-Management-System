@@ -19,6 +19,7 @@ import {
 import { studentsAPI, teachersAPI, attendanceAPI, organizationsAPI } from '../services/api';
 import OrganizationDetailModal from '../components/ui/OrganizationDetailModal';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import '../components/ui/Components.css';
 import './Dashboard.css';
 
@@ -139,14 +140,9 @@ function TeacherProfileSection() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
   const [newClass, setNewClass] = useState('');
   const [form, setForm] = useState({ subject: '', phone: '', qualification: '', experience: '' });
-
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const { showToast } = useToast();
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -306,7 +302,6 @@ function TeacherProfileSection() {
           </div>
         </div>
       </div>
-      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }
@@ -337,7 +332,8 @@ export default function Dashboard() {
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       if (role === 'student') {
         const [profileRes, attRes] = await Promise.all([
@@ -389,12 +385,17 @@ export default function Dashboard() {
         } catch {}
       }
     } catch {}
-    finally { setLoading(false); }
+    finally { if (!silent) setLoading(false); }
   }, [role]);
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    // Auto-refresh every 30 seconds for live updates (silent & visibility-aware)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchData(true);
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -422,7 +423,7 @@ export default function Dashboard() {
         {/* ── Attendance Stats Row ── */}
         <div className="section">
           <h3 className="section-group-title">My Attendance Overview</h3>
-          <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="grid-stats">
             <StatCard icon={HiOutlineCheck} iconVariant="accent" label="Present" value={myAttendance.present} loading={loading} />
             <StatCard icon={HiOutlineX} iconVariant="danger" label="Absent" value={myAttendance.absent} loading={loading} />
             <StatCard icon={HiOutlineClock} iconVariant="primary" label="Late" value={myAttendance.late} loading={loading} />
@@ -535,7 +536,7 @@ export default function Dashboard() {
         {/* ── Overview Stats ── */}
         <div className="section">
           <h3 className="section-group-title">Overview</h3>
-          <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div className="grid-stats cols-3">
             <StatCard icon={HiOutlineUserGroup} iconVariant="primary" label="Total Students" value={stats.students} loading={loading} />
             <StatCard icon={HiOutlineClipboardCheck} iconVariant="accent" label="Today's Attendance %" value={`${stats.attendance}%`} loading={loading} />
             <StatCard icon={HiOutlineAcademicCap} iconVariant="teal" label="Active Classes" value={stats.classes.length} loading={loading} />

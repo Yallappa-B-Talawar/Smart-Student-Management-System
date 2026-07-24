@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineX, HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineX, HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
 import { teachersAPI, organizationsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import '../components/ui/Components.css';
 
 const emptyForm = { name: '', email: '', subject: '', classes: '', phone: '', qualification: '', experience: '', address: '', organizationId: '', organizationCode: '' };
@@ -12,19 +13,30 @@ export default function Teachers() {
   const isAdmin = user?.role === 'admin';
   const isReadOnly = user?.role === 'student' || user?.role === 'teacher';
 
+  const location = useLocation();
+  const [search, setSearch] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('q') || '';
+  });
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterOrg, setFilterOrg] = useState('');
   const [stats, setStats] = useState({ total: 0, active: 0, onLeave: 0 });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ ...emptyForm });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
-  const [toast, setToast] = useState(null);
+  const { showToast } = useToast();
   const [viewTeacher, setViewTeacher] = useState(null);
   const [orgs, setOrgs] = useState([]);
   const [orgsLoading, setOrgsLoading] = useState(true);
-  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q') || '';
+    setSearch(q);
+  }, [location.search]);
 
   useEffect(() => {
     if (location.state?.openAdd) {
@@ -34,39 +46,40 @@ export default function Teachers() {
   }, [location.state]);
 
   useEffect(() => {
-    if (isAdmin) {
-      organizationsAPI.getAll()
-        .then(res => setOrgs(res.data.data || []))
-        .catch(() => setOrgs([]))
-        .finally(() => setOrgsLoading(false));
-    }
-  }, [isAdmin]);
+    organizationsAPI.getAll()
+      .then(res => setOrgs(res.data.data || []))
+      .catch(() => setOrgs([]))
+      .finally(() => setOrgsLoading(false));
+  }, []);
 
-  const fetchTeachers = useCallback(async () => {
-    setLoading(true);
+  const fetchTeachers = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await teachersAPI.getAll();
+      const params = {};
+      if (search) params.search = search;
+      if (filterOrg) params.organization = filterOrg;
+      const res = await teachersAPI.getAll(params);
       setTeachers(res.data.data.teachers || []);
     } catch { setTeachers([]); }
-    finally { setLoading(false); }
-  }, []);
+    finally { if (!silent) setLoading(false); }
+  }, [search, filterOrg]);
 
   useEffect(() => { fetchTeachers(); }, [fetchTeachers]);
 
-  // Auto-refresh every 30 seconds for live updates
+  // Auto-refresh every 30 seconds for live updates (silent & visibility-aware)
   useEffect(() => {
-    const interval = setInterval(fetchTeachers, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchTeachers(true);
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchTeachers]);
 
   useEffect(() => {
     teachersAPI.getStats().then(res => setStats(res.data.data)).catch(() => {});
-  }, [teachers]);
+  }, []);
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const openCreateForm = () => {
     setEditingId(null);
@@ -152,6 +165,20 @@ export default function Teachers() {
 
   const f = (key, val) => setFormData(p => ({ ...p, [key]: val }));
 
+  const orgOptions = Array.from(
+    new Set([
+      ...orgs.map(o => o.name),
+      ...teachers.map(t => typeof t.organization === 'object' ? t.organization?.name : t.organization).filter(Boolean)
+    ])
+  ).sort();
+
+  const displayTeachers = teachers.filter(t => {
+    if (!filterOrg) return true;
+    const orgName = typeof t.organization === 'object' ? t.organization?.name || '' : (t.organization || '');
+    const orgId = typeof t.organization === 'object' ? t.organization?._id || '' : (t.organization || '');
+    return orgName === filterOrg || orgId === filterOrg;
+  });
+
   // READ-ONLY VIEW (Students & Teachers) — teacher directory (card layout)
   // ──────────────────────────────────────────────────────────────────
   if (isReadOnly) {
@@ -162,7 +189,7 @@ export default function Teachers() {
             <h2 className="section-title">
               Teachers Directory
               <span className="badge badge-outline" style={{ marginLeft: '10px', fontSize: '14px', verticalAlign: 'middle' }}>
-                {teachers.length}
+                {displayTeachers.length}
               </span>
             </h2>
             <p className="section-subtitle">Browse your school's faculty</p>
@@ -173,7 +200,7 @@ export default function Teachers() {
         </div>
 
         {/* Stats */}
-        <div className="grid-stats section" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="grid-stats cols-3 section">
           <div className="stat-card">
             <div className="stat-card-icon primary">👥</div>
             <div className="stat-card-info"><div className="stat-card-label">Total Faculty</div><div className="stat-card-value">{stats.total}</div></div>
@@ -188,30 +215,52 @@ export default function Teachers() {
           </div>
         </div>
 
+        {/* Search Bar + Org Filter */}
+        <div className="section" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1', maxWidth: '320px' }}>
+            <HiOutlineSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+            <input className="form-input" type="search" placeholder="Search by name, email or subject..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} aria-label="Search teachers" />
+          </div>
+
+          <select
+            className="form-select"
+            value={filterOrg}
+            onChange={e => setFilterOrg(e.target.value)}
+            style={{ width: 'auto', minWidth: '180px' }}
+            aria-label="Filter by organization"
+          >
+            <option value="">🏫 All Organizations</option>
+            {orgOptions.map(orgName => (
+              <option key={orgName} value={orgName}>{orgName}</option>
+            ))}
+          </select>
+        </div>
+
         {loading ? (
           <div className="spinner-wrapper"><div className="spinner" /><span className="spinner-text">Loading teachers...</span></div>
-        ) : teachers.length === 0 ? (
+        ) : displayTeachers.length === 0 ? (
           <div className="card section">
             <div className="card-body">
               <div className="empty-state">
                 <div className="empty-state-icon">👨‍🏫</div>
                 <div className="empty-state-title">No teachers found</div>
-                <p className="empty-state-text">Teachers will appear here once they are added by your admin.</p>
+                <p className="empty-state-text">{filterOrg ? `No teacher records found for "${filterOrg}".` : 'Teachers will appear here once they are added by your admin.'}</p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-            {teachers.map(t => (
-              <div className="card" key={t._id} style={{ cursor: 'pointer' }} onClick={() => setViewTeacher(t)}>
+          <div className="grid-cards section">
+            {displayTeachers.map(t => (
+              <div className="card" key={t._id} onClick={() => setViewTeacher(t)}>
                 <div className="card-body">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
                     <div style={{
-                      width: '48px', height: '48px', flexShrink: 0,
-                      background: 'var(--color-primary)', color: 'var(--color-text-on-primary)',
-                      border: '3px solid var(--border-color)',
+                      width: '40px', height: '40px', flexShrink: 0,
+                      background: 'rgba(79, 70, 229, 0.1)', color: 'var(--color-primary)',
+                      border: '1px solid rgba(79, 70, 229, 0.2)',
+                      borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 800, fontSize: '22px',
+                      fontWeight: 700, fontSize: '18px',
                     }}>
                       {t.name.charAt(0).toUpperCase()}
                     </div>
@@ -281,8 +330,6 @@ export default function Teachers() {
             </div>
           </div>
         )}
-
-        {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
       </div>
     );
   }
@@ -297,7 +344,7 @@ export default function Teachers() {
           <h2 className="section-title">
             Teachers
             <span className="badge badge-outline" style={{ marginLeft: '10px', fontSize: '14px', verticalAlign: 'middle' }}>
-              {teachers.length}
+              {displayTeachers.length}
             </span>
           </h2>
           <p className="section-subtitle">Manage faculty and class assignments</p>
@@ -309,7 +356,7 @@ export default function Teachers() {
       </div>
 
       {/* Stats */}
-      <div className="grid-stats section" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <div className="grid-stats cols-3 section">
         <div className="stat-card">
           <div className="stat-card-icon primary">👥</div>
           <div className="stat-card-info"><div className="stat-card-label">Total Faculty</div><div className="stat-card-value">{stats.total}</div></div>
@@ -335,7 +382,7 @@ export default function Teachers() {
             {formError && <div className="auth-error" style={{ marginBottom: '16px' }}>{formError}</div>}
             <form onSubmit={handleSubmit}>
               <div className="grid-2">
-                {true && (
+                {isAdmin && (
                   <>
                     <div className="form-group">
                       <label className="form-label" htmlFor="t-org">School / Organization *</label>
@@ -380,6 +427,27 @@ export default function Teachers() {
         </div>
       )}
 
+      {/* Search Bar + Org Filter */}
+      <div className="section" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1', maxWidth: '320px' }}>
+          <HiOutlineSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+          <input className="form-input" type="search" placeholder="Search by name, email or subject..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} aria-label="Search teachers" />
+        </div>
+
+        <select
+          className="form-select"
+          value={filterOrg}
+          onChange={e => setFilterOrg(e.target.value)}
+          style={{ width: 'auto', minWidth: '180px' }}
+          aria-label="Filter by organization"
+        >
+          <option value="">🏫 All Organizations</option>
+          {orgOptions.map(orgName => (
+            <option key={orgName} value={orgName}>{orgName}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Table */}
       {loading ? (
         <div className="spinner-wrapper"><div className="spinner" /><span className="spinner-text">Loading teachers...</span></div>
@@ -388,9 +456,9 @@ export default function Teachers() {
           <table className="table table-responsive">
             <thead><tr><th>Name</th><th>School</th><th>Subject</th><th>Classes</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              {teachers.length === 0 ? (
-                <tr><td colSpan="7"><div className="empty-state"><div className="empty-state-icon">👨‍🏫</div><div className="empty-state-title">No teachers found</div><p className="empty-state-text">Click "Add Teacher" to add faculty.</p></div></td></tr>
-              ) : teachers.map(t => (
+              {displayTeachers.length === 0 ? (
+                <tr><td colSpan="7"><div className="empty-state"><div className="empty-state-icon">👨‍🏫</div><div className="empty-state-title">No teachers found</div><p className="empty-state-text">{filterOrg ? `No teacher records found for "${filterOrg}".` : 'Click "Add Teacher" to add faculty.'}</p></div></td></tr>
+              ) : displayTeachers.map(t => (
                 <tr key={t._id}>
                   <td data-label="Name"><strong>{t.name}</strong></td>
                   <td data-label="School">{t.organization?.name || '—'}</td>
@@ -442,8 +510,6 @@ export default function Teachers() {
           </div>
         </div>
       )}
-
-      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }

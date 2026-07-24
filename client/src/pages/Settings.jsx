@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { useToast } from '../context/ToastContext';
 import '../components/ui/Components.css';
 import './Auth.css';
 
@@ -10,21 +11,18 @@ export default function Settings() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError('New passwords do not match');
+      showToast('New passwords do not match', 'error');
       return;
     }
     if (passwordForm.newPassword.length < 8) {
-      setError('New password must be at least 8 characters');
+      showToast('New password must be at least 8 characters', 'error');
       return;
     }
 
@@ -34,14 +32,14 @@ export default function Settings() {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      setSuccess('Password updated successfully!');
+      showToast('Password updated successfully!');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       const data = err.response?.data;
       if (data?.errors?.length) {
-        setError(data.errors.map(e => e.message).join(' • '));
+        showToast(data.errors.map(errObj => errObj.message).join(' • '), 'error');
       } else {
-        setError(data?.message || 'Failed to change password');
+        showToast(data?.message || 'Failed to change password', 'error');
       }
     } finally {
       setLoading(false);
@@ -94,9 +92,6 @@ export default function Settings() {
           <h3 className="card-header-title">Change Password</h3>
         </div>
         <div className="card-body">
-          {error && <div className="auth-error" style={{ marginBottom: '16px' }}>{error}</div>}
-          {success && <div style={{ background: 'var(--color-accent)', color: '#000', padding: '12px 16px', border: 'var(--border-width) solid var(--border-color)', fontWeight: 700, fontSize: '14px', marginBottom: '16px' }}>{success}</div>}
-
           <form onSubmit={handleChangePassword}>
             <div style={{ maxWidth: '440px' }}>
               <div className="form-group">

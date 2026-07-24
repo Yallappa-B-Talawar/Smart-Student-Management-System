@@ -29,13 +29,8 @@ const getAll = asyncHandler(async (req, res) => {
     if (user) organizationId = user.organization;
   }
   
-  if (req.user.role === "admin") {
-    if (req.query.organization) {
-      // Keep requested organization
-    } else if (organizationId) {
-      req.query.organization = organizationId;
-    }
-  } else if (organizationId) {
+  // Preserve requested organization filter if provided; fallback to user's assigned organizationId
+  if (!req.query.organization && organizationId) {
     req.query.organization = organizationId;
   }
 

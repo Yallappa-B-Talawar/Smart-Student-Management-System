@@ -1,7 +1,7 @@
 {
-  "name": "smart-student-management-system",
+  "name": "studexa",
   "version": "1.0.0",
-  "description": "Smart Student Management System — Full Stack",
+  "description": "STUDEXA — Smart Academic Management Platform",
   "private": true,
   "scripts": {
     "dev": "cd client && npm run dev",

@@ -55,15 +55,11 @@ const getAll = asyncHandler(async (req, res) => {
     if (teacher && teacher.classes.length > 0) {
       req.query.classes = teacher.classes;
     }
-    if (organizationId) {
-      req.query.organization = organizationId;
-    }
-  } else if (req.user.role === "admin") {
-    if (req.query.organization) {
-      // Keep requested organization
-    } else if (organizationId) {
-      req.query.organization = organizationId;
-    }
+  }
+
+  // Preserve requested organization filter if provided; fallback to user's assigned organizationId
+  if (!req.query.organization && organizationId) {
+    req.query.organization = organizationId;
   }
 
   const result = await studentService.getAllStudents(req.query);
@@ -176,8 +172,6 @@ const getMyProfile = asyncHandler(async (req, res) => {
   const response = new ApiResponse(200, "Student profile fetched", {
     student,
     teachers,
-    // Debug info (remove in production)
-    _debug: { studentClass, teachersFound: teachers.length },
   });
   res.status(response.statusCode).json(response);
 });

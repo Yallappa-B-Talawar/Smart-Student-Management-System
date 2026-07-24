@@ -3,6 +3,7 @@ import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineRefresh, HiOut
 import { organizationsAPI } from '../services/api';
 import OrganizationDetailModal from '../components/ui/OrganizationDetailModal';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import '../components/ui/Components.css';
 
 const emptyForm = { name: '', code: '', description: '', address: '', status: 'active' };
@@ -16,28 +17,28 @@ export default function Organizations() {
   const [formData, setFormData] = useState({ ...emptyForm });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
-  const [toast, setToast] = useState(null);
+  const { showToast } = useToast();
   const [selectedOrg, setSelectedOrg] = useState(null);
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const fetchOrgs = useCallback(async () => {
+  const fetchOrgs = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await organizationsAPI.getAll();
       setOrgs(res.data.data || []);
     } catch {
       setOrgs([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchOrgs();
-    const interval = setInterval(fetchOrgs, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchOrgs(true);
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchOrgs]);
 
@@ -239,18 +240,19 @@ export default function Organizations() {
           </div>
         </div>
       ) : (
-        <div className="section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+        <div className="grid-cards-lg section">
           {orgs.map(org => (
             <div className="card" key={org._id}>
               <div className="card-body">
                 {/* Header row */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
                   <div style={{
-                    width: '48px', height: '48px', flexShrink: 0,
-                    background: 'var(--color-primary)', color: 'var(--color-text-on-primary)',
-                    border: '3px solid var(--border-color)',
+                    width: '40px', height: '40px', flexShrink: 0,
+                    background: 'rgba(79, 70, 229, 0.1)', color: 'var(--color-primary)',
+                    border: '1px solid rgba(79, 70, 229, 0.2)',
+                    borderRadius: 'var(--radius-md)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '22px',
+                    fontSize: '18px',
                   }}>
                     <HiOutlineOfficeBuilding />
                   </div>
@@ -267,13 +269,14 @@ export default function Organizations() {
 
                 {/* Join code — prominently displayed */}
                 <div style={{
-                  background: 'var(--color-surface)', border: '3px solid var(--border-color)',
+                  background: 'var(--color-surface-alt)', border: 'var(--border-width) solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
                   padding: '12px 16px', marginBottom: '16px', textAlign: 'center',
                 }}>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>
                     Join Code — Share with users
                   </div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, letterSpacing: '8px', color: 'var(--color-accent)', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '6px', color: 'var(--color-primary)', fontFamily: 'monospace' }}>
                     {org.code || '—'}
                   </div>
                 </div>
@@ -305,9 +308,6 @@ export default function Organizations() {
           ))}
         </div>
       )}
-
-      {/* Toast */}
-      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
 
       {selectedOrg && (
         <OrganizationDetailModal

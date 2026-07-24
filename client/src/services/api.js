@@ -10,7 +10,7 @@ const api = axios.create({
 
 // Attach access token to every request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ssms-token');
+  const token = localStorage.getItem('studexa-token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -33,11 +33,11 @@ api.interceptors.response.use(
       try {
         const { data } = await axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });
         const newToken = data.data.accessToken;
-        localStorage.setItem('ssms-token', newToken);
+        localStorage.setItem('studexa-token', newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch {
-        localStorage.removeItem('ssms-token');
+        localStorage.removeItem('studexa-token');
         window.location.href = '/login';
         return Promise.reject(error);
       }

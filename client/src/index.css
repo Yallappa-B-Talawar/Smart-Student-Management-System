@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   SSMS Design System — Neo-Brutalism (Indigo × Lime)
+   STUDEXA Design System — Neo-Brutalism (Indigo × Lime)
    
    DESIGN TOKENS:
    All colors, spacing, typography, and shadows are defined as
@@ -15,35 +15,64 @@
   padding: 0;
 }
 
-/* ── DESIGN TOKENS (Light Mode) ─────────────────────────────── */
+/* ── DESIGN TOKENS (Light Mode — Pure White Theme with Black Sidebar) ── */
 :root {
   /* Primary Palette */
-  --color-primary: #27187E;
-  --color-accent: #89E900;
-  --color-danger: #FF3E6C;
-  --color-teal: #004643;
-  --color-plum: #381932;
+  --color-primary: #4f46e5;      /* Royal Indigo */
+  --color-accent: #0891b2;       /* Cyan/Teal */
+  --color-danger: #ef4444;       /* Crimson Red */
+  --color-warning: #f59e0b;      /* Amber Yellow */
+  --color-success: #10b981;      /* Emerald Green */
+  --color-info: #3b82f6;         /* Royal Blue */
+  --color-teal: #0f766e;
+  --color-plum: #6366f1;
 
-  /* Surfaces */
-  --color-bg: #F7F7FF;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F0EDE5;
-  --color-sidebar: #27187E;
+  /* Surfaces — Pure White Palette */
+  --color-bg: #ffffff;           /* Pure Pristine White */
+  --color-surface: #ffffff;      /* Pure White Surface */
+  --color-surface-alt: #f8fafc;  /* Soft Off-White */
+
+  /* Inverted Sidebar Tokens (Light Mode = Pitch Black Sidebar) */
+  --color-sidebar-bg: #000000;
+  --color-sidebar-text: #ffffff;
+  --color-sidebar-text-secondary: rgba(255, 255, 255, 0.75);
+  --color-sidebar-text-muted: rgba(255, 255, 255, 0.45);
+  --color-sidebar-border: rgba(255, 255, 255, 0.12);
+  --color-sidebar-hover-bg: rgba(255, 255, 255, 0.08);
+  --color-sidebar-active-bg: rgba(255, 255, 255, 0.14);
+  --color-sidebar-avatar-bg: rgba(255, 255, 255, 0.15);
+  --color-sidebar-logout-bg: rgba(239, 68, 68, 0.12);
+  --color-sidebar-logout-border: rgba(239, 68, 68, 0.3);
+  --color-sidebar-logout-text: #ef4444;
 
   /* Text */
-  --color-text: #1a1a2e;
-  --color-text-secondary: #555566;
-  --color-text-muted: #8888a0;
-  --color-text-on-primary: #FFFFFF;
-  --color-text-on-accent: #000000;
+  --color-text: #0f172a;         /* High-Contrast Slate 900 */
+  --color-text-secondary: #475569;/* Slate 600 */
+  --color-text-muted: #64748b;   /* Slate 500 */
+  --color-text-on-primary: #ffffff;
+  --color-text-on-accent: #ffffff;
 
-  /* Borders & Shadows (Neo-Brutalism) */
-  --border-color: #000000;
-  --border-width: 2px;
-  --shadow-offset: 4px;
-  --shadow-brutal: var(--shadow-offset) var(--shadow-offset) 0px var(--border-color);
-  --shadow-brutal-lg: 6px 6px 0px var(--border-color);
-  --shadow-brutal-hover: 6px 6px 0px var(--border-color);
+  /* Borders & Shadows (Modern Premium SaaS) */
+  --border-color: #e2e8f0;       /* Slate 200 */
+  --border-width: 1px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.35s ease;
+
+  /* Fallback aliases for layout compatibility */
+  --shadow-offset: 0px;
+  --shadow-brutal: var(--shadow-sm);
+  --shadow-brutal-lg: var(--shadow-md);
+  --shadow-brutal-hover: var(--shadow-lg);
 
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -52,20 +81,23 @@
   --font-size-base: 0.875rem; /* 14px */
   --font-size-md: 1rem;       /* 16px */
   --font-size-lg: 1.125rem;   /* 18px */
-  --font-size-xl: 1.5rem;     /* 24px */
-  --font-size-2xl: 2rem;      /* 32px */
-  --font-size-3xl: 2.5rem;    /* 40px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 2rem;      /* 32px */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  --font-weight-black: 900;
+  --font-weight-black: 800;
   --line-height: 1.5;
 
   /* Spacing Scale */
   --space-1: 4px;
+  --space-1-5: 6px;
   --space-2: 8px;
+  --space-2-5: 10px;
   --space-3: 12px;
+  --space-3-5: 14px;
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
@@ -73,15 +105,6 @@
   --space-10: 40px;
   --space-12: 48px;
   --space-16: 64px;
-
-  /* Border Radius (Brutalism = 0, but subtle for some elements) */
-  --radius-none: 0px;
-  --radius-sm: 2px;
-
-  /* Transitions */
-  --transition-fast: 0.1s ease;
-  --transition-base: 0.2s ease;
-  --transition-slow: 0.3s ease;
 
   /* Layout */
   --sidebar-width: 260px;
@@ -96,34 +119,75 @@
   --z-toast: 400;
 }
 
-/* ── DARK MODE TOKENS ───────────────────────────────────────── */
+/* ── DARK MODE TOKENS (Pure Pitch Black Theme with White Sidebar) ─ */
 [data-theme="dark"] {
-  --color-primary: #5A43D1; /* Brighter Indigo for dark mode */
-  --color-accent: #89E900;  /* Keep Lime green as accent */
+  --color-primary: #6366f1;       /* Indigo 500 */
+  --color-accent: #06b6d4;        /* Cyan 500 */
+  --color-danger: #f43f5e;        /* Rose 500 */
+  --color-warning: #fbbf24;       /* Amber 400 */
+  --color-success: #10b981;       /* Emerald 500 */
+  --color-info: #3b82f6;          /* Blue 500 */
   
-  --color-bg: #12101F;
-  --color-surface: #1C1930;
-  --color-surface-alt: #282442;
-  --color-sidebar: #151326;
+  /* Surfaces — Pure True Pitch Black */
+  --color-bg: #000000;            /* True Pitch Black */
+  --color-surface: #0a0a0c;       /* Deep Black Surface */
+  --color-surface-alt: #141417;   /* Charcoal Slate Surface */
 
-  --color-text: #F7F7FF;
-  --color-text-secondary: #C0C0D6;
-  --color-text-muted: #84849A;
+  /* Inverted Sidebar Tokens (Dark Mode = Pure White Sidebar) */
+  --color-sidebar-bg: #ffffff;
+  --color-sidebar-text: #0f172a;
+  --color-sidebar-text-secondary: #334155;
+  --color-sidebar-text-muted: #64748b;
+  --color-sidebar-border: #e2e8f0;
+  --color-sidebar-hover-bg: rgba(15, 23, 42, 0.06);
+  --color-sidebar-active-bg: rgba(15, 23, 42, 0.09);
+  --color-sidebar-avatar-bg: rgba(15, 23, 42, 0.08);
+  --color-sidebar-logout-bg: #fef2f2;
+  --color-sidebar-logout-border: #fca5a5;
+  --color-sidebar-logout-text: #dc2626;
+
+  /* Text */
+  --color-text: #ffffff;          /* Crisp Bright White */
+  --color-text-secondary: #a1a1aa;/* Zinc 400 */
+  --color-text-muted: #71717a;    /* Zinc 500 */
   
-  --color-text-on-primary: #FFFFFF;
-  --color-text-on-accent: #000000;
+  --color-text-on-primary: #ffffff;
+  --color-text-on-accent: #ffffff;
 
-  /* Muted borders with pitch black solid shadows for Brutalism */
-  --border-color: #3E3B5C;
-  --shadow-brutal: var(--shadow-offset) var(--shadow-offset) 0px #000000;
-  --shadow-brutal-lg: 6px 6px 0px #000000;
-  --shadow-brutal-hover: 6px 6px 0px #89E900; /* Lime shadow on hover */
+  /* Borders & Shadows */
+  --border-color: #27272a;        /* Crisp Dark Zinc 800 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
+
+  --shadow-brutal: var(--shadow-sm);
+  --shadow-brutal-lg: var(--shadow-md);
+  --shadow-brutal-hover: var(--shadow-lg);
 }
 
 /* ── BASE STYLES ────────────────────────────────────────────── */
 html {
   font-size: 16px;
-  scroll-behavior: smooth;
+}
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis-scrolling iframe {
+  pointer-events: none;
 }
 
 body {

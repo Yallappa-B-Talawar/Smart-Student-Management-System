@@ -9,12 +9,12 @@ export function AuthProvider({ children }) {
 
   // Check if user is already logged in on mount
   useEffect(() => {
-    const token = localStorage.getItem('ssms-token');
+    const token = localStorage.getItem('studexa-token');
     if (token) {
       authAPI.getMe()
         .then(res => setUser(res.data.data))
         .catch(() => {
-          localStorage.removeItem('ssms-token');
+          localStorage.removeItem('studexa-token');
           setUser(null);
         })
         .finally(() => setLoading(false));
@@ -25,21 +25,21 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password, organizationId) => {
     const res = await authAPI.login({ email, password, organizationId });
-    localStorage.setItem('ssms-token', res.data.data.accessToken);
+    localStorage.setItem('studexa-token', res.data.data.accessToken);
     setUser(res.data.data.user);
     return res.data;
   };
 
   const register = async (data) => {
     const res = await authAPI.register(data);
-    localStorage.setItem('ssms-token', res.data.data.accessToken);
+    localStorage.setItem('studexa-token', res.data.data.accessToken);
     setUser(res.data.data.user);
     return res.data;
   };
 
   const logout = async () => {
     try { await authAPI.logout(); } catch {}
-    localStorage.removeItem('ssms-token');
+    localStorage.removeItem('studexa-token');
     setUser(null);
   };
 

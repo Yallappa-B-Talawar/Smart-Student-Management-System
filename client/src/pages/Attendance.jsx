@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { HiOutlineCheck, HiOutlineX, HiOutlineClock } from 'react-icons/hi';
 import { attendanceAPI, studentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import '../components/ui/Components.css';
 
 export default function Attendance() {
@@ -13,7 +14,7 @@ export default function Attendance() {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
-  const [toast, setToast] = useState(null);
+  const { showToast } = useToast();
 
   // Fetch available classes
   useEffect(() => {
@@ -24,21 +25,25 @@ export default function Attendance() {
     }).catch(() => {});
   }, []);
 
-  const fetchAttendance = useCallback(async () => {
+  const fetchAttendance = useCallback(async (silent = false) => {
     if (!selectedClass) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const res = await attendanceAPI.getByClass(selectedClass, selectedDate);
       setRecords(res.data.data || []);
     } catch { setRecords([]); }
-    finally { setLoading(false); }
+    finally { if (!silent) setLoading(false); }
   }, [selectedClass, selectedDate]);
 
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
 
-  // Auto-refresh every 30 seconds for live updates
+  // Auto-refresh every 30 seconds for live updates (silent & visibility-aware)
   useEffect(() => {
-    const interval = setInterval(fetchAttendance, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchAttendance(true);
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchAttendance]);
 
@@ -53,9 +58,8 @@ export default function Attendance() {
     setRecords(prev => prev.map(r => r._id === id ? { ...r, status } : r));
   };
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+  const markAllStatus = (status) => {
+    setRecords(prev => prev.map(r => ({ ...r, status })));
   };
 
   const saveAttendance = async () => {
@@ -100,27 +104,44 @@ export default function Attendance() {
         </div>
       </div>
 
-      <div className="section" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <select className="form-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)} aria-label="Select class">
-            {classes.length === 0 && <option value="">No classes found</option>}
-            {classes.map(cls => <option key={cls} value={cls}>{cls}</option>)}
-          </select>
-        </div>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <input className="form-input" type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} aria-label="Attendance date" />
-        </div>
-        {records.length > 0 && (
-          <div style={{ marginLeft: 'auto' }}>
-            <div className="progress-bar-wrapper" style={{ width: '200px' }}>
-              <div className="progress-bar-fill" style={{ width: `${records.length > 0 ? (stats.present / records.length) * 100 : 0}%` }} />
+      <div className="card section">
+        <div className="card-header">
+          <h3 className="card-header-title">Filter Attendance</h3>
+          {canMark && records.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button className="btn btn-sm btn-accent" onClick={() => markAllStatus('present')}>Mark All Present</button>
+              <button className="btn btn-sm btn-outline" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }} onClick={() => markAllStatus('absent')}>Mark All Absent</button>
             </div>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-              {records.length > 0 ? Math.round((stats.present / records.length) * 100) : 0}% Present
-            </span>
+          )}
+        </div>
+        <div className="card-body" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ marginBottom: 0, minWidth: '160px' }}>
+            <label className="form-label" htmlFor="att-class">Class</label>
+            <select className="form-select" id="att-class" value={selectedClass} onChange={e => setSelectedClass(e.target.value)} aria-label="Select class">
+              {classes.length === 0 && <option value="">No classes found</option>}
+              {classes.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+            </select>
           </div>
-        )}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" htmlFor="att-date">Date</label>
+            <input className="form-input" id="att-date" type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} aria-label="Attendance date" />
+          </div>
+          {records.length > 0 && (
+            <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '160px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Today's Rate
+              </span>
+              <div className="progress-bar-wrapper">
+                <div className="progress-bar-fill" style={{ width: `${records.length > 0 ? (stats.present / records.length) * 100 : 0}%` }} />
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                {records.length > 0 ? Math.round((stats.present / records.length) * 100) : 0}% Present ({stats.present}/{records.length})
+              </span>
+            </div>
+          )}
+        </div>
       </div>
+
 
       {loading ? (
         <div className="spinner-wrapper"><div className="spinner" /><span className="spinner-text">Loading students...</span></div>
@@ -155,7 +176,6 @@ export default function Attendance() {
           </table>
         </div>
       )}
-      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }

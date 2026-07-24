@@ -1,7 +1,7 @@
 {
-  "name": "ssms-server",
+  "name": "studexa-server",
   "version": "1.0.0",
-  "description": "Smart Student Management System - Backend API",
+  "description": "STUDEXA — Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

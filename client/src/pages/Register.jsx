@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlineEye, HiOutlineEyeOff, HiOutlineUser, HiOutlineMail, HiOutlineLockClosed, HiOutlineTag, HiOutlineOfficeBuilding, HiOutlineKey } from 'react-icons/hi';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { organizationsAPI } from '../services/api';
+import Icon from '../components/ui/Icon';
 import '../components/ui/Components.css';
 import './Auth.css';
 
@@ -63,7 +64,7 @@ export default function Register() {
     } catch (err) {
       const data = err.response?.data;
       if (data?.errors?.length) {
-        setError(data.errors.map(e => e.message).join(' • '));
+        setError(data.errors.map(errObj => errObj.message).join(' • '));
       } else {
         setError(data?.message || 'Registration failed. Please try again.');
       }
@@ -78,41 +79,50 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">S</div>
-          <h1>SSMS</h1>
-          <p>Smart Student Management System</p>
+          <div className="auth-logo-icon">
+            <Icon size={28} color="var(--color-primary)" />
+          </div>
+          <h1>STUDEXA</h1>
+          <p>Smart Academic Management Platform</p>
         </div>
 
         <h2 className="auth-title">Create Account</h2>
-        <p className="auth-subtitle">Sign up to get started</p>
+        <p className="auth-subtitle">Sign up to get started today</p>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label" htmlFor="reg-name">Full Name</label>
-            <input
-              className="form-input" id="reg-name" type="text"
-              placeholder="Your full name" value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })} required
-            />
+            <div className="input-icon-wrapper">
+              <span className="input-icon"><HiOutlineUser /></span>
+              <input
+                className="form-input has-icon" id="reg-name" type="text"
+                placeholder="Your full name" value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })} required
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="reg-email">Email Address</label>
-            <input
-              className="form-input" id="reg-email" type="email"
-              placeholder="you@example.com" value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              required autoComplete="email"
-            />
+            <div className="input-icon-wrapper">
+              <span className="input-icon"><HiOutlineMail /></span>
+              <input
+                className="form-input has-icon" id="reg-email" type="email"
+                placeholder="you@example.com" value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                required autoComplete="email"
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="reg-password">Password</label>
-            <div className="password-input-wrapper">
+            <div className="password-input-wrapper input-icon-wrapper">
+              <span className="input-icon"><HiOutlineLockClosed /></span>
               <input
-                className="form-input" id="reg-password"
+                className="form-input has-icon" id="reg-password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Min 8 characters" value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
@@ -128,12 +138,15 @@ export default function Register() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="reg-role">Role</label>
-            <select className="form-select" id="reg-role" value={form.role}
-              onChange={e => setForm({ ...form, role: e.target.value, organizationId: '', organizationCode: '' })}>
-              <option value="student">Student</option>
-              <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
-            </select>
+            <div className="input-icon-wrapper">
+              <span className="input-icon"><HiOutlineTag /></span>
+              <select className="form-select has-icon" id="reg-role" value={form.role}
+                onChange={e => setForm({ ...form, role: e.target.value, organizationId: '', organizationCode: '' })}>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
           </div>
 
           {/* Organization fields — only for teacher and student */}
@@ -142,26 +155,29 @@ export default function Register() {
               <div className="form-group">
                 <label className="form-label" htmlFor="reg-org" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                   <span>School / Organization <span style={{ color: 'var(--color-danger)' }}>*</span></span>
-                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 500, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
                     Select your institution
                   </span>
                 </label>
-                <select
-                  className="form-select" id="reg-org"
-                  value={form.organizationId}
-                  onChange={e => setForm({ ...form, organizationId: e.target.value })}
-                  required={needsOrg}
-                  disabled={orgsLoading}
-                >
-                  <option value="">
-                    {orgsLoading ? 'Loading schools...' :
-                     orgs.length === 0 ? 'No schools registered yet — contact your admin' :
-                     '— Select your school —'}
-                  </option>
-                  {orgs.map(org => (
-                    <option key={org._id} value={org._id}>{org.name}</option>
-                  ))}
-                </select>
+                <div className="input-icon-wrapper">
+                  <span className="input-icon"><HiOutlineOfficeBuilding /></span>
+                  <select
+                    className="form-select has-icon" id="reg-org"
+                    value={form.organizationId}
+                    onChange={e => setForm({ ...form, organizationId: e.target.value })}
+                    required={needsOrg}
+                    disabled={orgsLoading}
+                  >
+                    <option value="">
+                      {orgsLoading ? 'Loading schools...' :
+                       orgs.length === 0 ? 'No schools registered yet — contact your admin' :
+                       '— Select your school —'}
+                    </option>
+                    {orgs.map(org => (
+                      <option key={org._id} value={org._id}>{org.name}</option>
+                    ))}
+                  </select>
+                </div>
                 {selectedOrg?.description && (
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
                     {selectedOrg.description}
@@ -172,20 +188,23 @@ export default function Register() {
               <div className="form-group">
                 <label className="form-label" htmlFor="reg-code" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
                   <span>Organization Code <span style={{ color: 'var(--color-danger)' }}>*</span></span>
-                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 500, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
                     5-Letter Join Code
                   </span>
                 </label>
-                <input
-                  className="form-input" id="reg-code"
-                  type="text"
-                  placeholder="e.g. SCHOL"
-                  value={form.organizationCode}
-                  onChange={e => setForm({ ...form, organizationCode: e.target.value.toUpperCase().slice(0, 5) })}
-                  required={needsOrg}
-                  maxLength={5}
-                  style={{ letterSpacing: '4px', fontWeight: 700, textTransform: 'uppercase' }}
-                />
+                <div className="input-icon-wrapper">
+                  <span className="input-icon"><HiOutlineKey /></span>
+                  <input
+                    className="form-input has-icon" id="reg-code"
+                    type="text"
+                    placeholder="e.g. SCHOL"
+                    value={form.organizationCode}
+                    onChange={e => setForm({ ...form, organizationCode: e.target.value.toUpperCase().slice(0, 5) })}
+                    required={needsOrg}
+                    maxLength={5}
+                    style={{ letterSpacing: '4px', fontWeight: 700, textTransform: 'uppercase' }}
+                  />
+                </div>
                 <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
                   Ask your school admin for the 5-letter join code
                 </div>
@@ -193,7 +212,7 @@ export default function Register() {
             </>
           )}
 
-          <button className="btn btn-accent btn-lg auth-submit" type="submit" disabled={loading}>
+          <button className="btn btn-primary btn-lg auth-submit" type="submit" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>

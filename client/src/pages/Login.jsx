@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlineEye, HiOutlineEyeOff, HiOutlineMail, HiOutlineLockClosed, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { organizationsAPI } from '../services/api';
+import Icon from '../components/ui/Icon';
 import '../components/ui/Components.css';
 import './Auth.css';
 
@@ -44,13 +45,15 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">S</div>
-          <h1>SSMS</h1>
-          <p>Smart Student Management System</p>
+          <div className="auth-logo-icon">
+            <Icon size={28} color="var(--color-primary)" />
+          </div>
+          <h1>STUDEXA</h1>
+          <p>Smart Academic Management Platform</p>
         </div>
 
         <h2 className="auth-title">Welcome Back</h2>
-        <p className="auth-subtitle">Sign in to your account</p>
+        <p className="auth-subtitle">Sign in to your account to continue</p>
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -59,27 +62,30 @@ export default function Login() {
           <div className="form-group">
             <label className="form-label" htmlFor="login-org" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
               <span>School / Organization</span>
-              <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
+              <span style={{ color: 'var(--color-text-muted)', fontWeight: 500, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal' }}>
                 Required for Teachers &amp; Students
               </span>
             </label>
-            <select
-              className="form-select"
-              id="login-org"
-              value={form.organizationId}
-              onChange={e => setForm({ ...form, organizationId: e.target.value })}
-              disabled={orgsLoading}
-            >
-              <option value="">
-                {orgsLoading ? 'Loading schools...' : orgs.length === 0 ? 'No schools registered yet' : '— Select your school —'}
-              </option>
-              {orgs.map(org => (
-                <option key={org._id} value={org._id}>{org.name}</option>
-              ))}
-            </select>
+            <div className="input-icon-wrapper">
+              <span className="input-icon"><HiOutlineOfficeBuilding /></span>
+              <select
+                className="form-select has-icon"
+                id="login-org"
+                value={form.organizationId}
+                onChange={e => setForm({ ...form, organizationId: e.target.value })}
+                disabled={orgsLoading}
+              >
+                <option value="">
+                  {orgsLoading ? 'Loading schools...' : orgs.length === 0 ? 'No schools registered yet' : '— Select your school —'}
+                </option>
+                {orgs.map(org => (
+                  <option key={org._id} value={org._id}>{org.name}</option>
+                ))}
+              </select>
+            </div>
             {selectedOrgName ? (
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-success)', marginTop: '4px' }}>
-                ✅ {selectedOrgName}
+                ✅ Linked to {selectedOrgName}
               </div>
             ) : (
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
@@ -90,23 +96,27 @@ export default function Login() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="login-email">Email Address</label>
-            <input
-              className="form-input"
-              id="login-email"
-              type="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              required
-              autoComplete="email"
-            />
+            <div className="input-icon-wrapper">
+              <span className="input-icon"><HiOutlineMail /></span>
+              <input
+                className="form-input has-icon"
+                id="login-email"
+                type="email"
+                placeholder="you@example.com"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                required
+                autoComplete="email"
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="login-password">Password</label>
-            <div className="password-input-wrapper">
+            <div className="password-input-wrapper input-icon-wrapper">
+              <span className="input-icon"><HiOutlineLockClosed /></span>
               <input
-                className="form-input"
+                className="form-input has-icon"
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"

@@ -102,8 +102,30 @@ const registerUser = async (userData) => {
   if (user.role === "student") {
     const existingStudent = await Student.findOne({ email: user.email });
     if (!existingStudent) {
-      const totalStudents = await Student.countDocuments();
-      const rollNo = `STU-${String(totalStudents + 1).padStart(4, "0")}`;
+      let rollNo = "";
+      let attempts = 0;
+      while (attempts < 10) {
+        const total = await Student.countDocuments();
+        const latest = await Student.findOne({ rollNo: /^STU-\d+$/ }).sort({ rollNo: -1 });
+        let nextVal = total + 1;
+        if (latest) {
+          const match = latest.rollNo.match(/^STU-(\d+)$/);
+          if (match) {
+            nextVal = Math.max(nextVal, parseInt(match[1], 10) + 1);
+          }
+        }
+        const candidate = `STU-${String(nextVal).padStart(4, "0")}`;
+        const collision = await Student.findOne({ rollNo: candidate });
+        if (!collision) {
+          rollNo = candidate;
+          break;
+        }
+        attempts++;
+      }
+      if (!rollNo) {
+        rollNo = `STU-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+
       await Student.create({
         user: user._id,
         name: user.name,

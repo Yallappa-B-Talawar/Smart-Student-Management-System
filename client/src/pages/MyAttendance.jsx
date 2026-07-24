@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { HiOutlineCheck, HiOutlineX, HiOutlineClock } from 'react-icons/hi';
 import { attendanceAPI } from '../services/api';
 import '../components/ui/Components.css';
@@ -7,23 +7,28 @@ export default function MyAttendance() {
   const [data, setData] = useState({ records: [], stats: { present: 0, absent: 0, late: 0, total: 0, rate: 0 } });
   const [loading, setLoading] = useState(true);
 
-  const fetchMyAttendance = async () => {
+  const fetchMyAttendance = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await attendanceAPI.myAttendance();
       setData(res.data.data);
     } catch {
       setData({ records: [], stats: { present: 0, absent: 0, late: 0, total: 0, rate: 0 } });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMyAttendance();
-    // Auto-refresh every 30 seconds for live updates
-    const interval = setInterval(fetchMyAttendance, 30000);
+    // Auto-refresh every 30 seconds for live updates (silent & visibility-aware)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchMyAttendance(true);
+      }
+    }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchMyAttendance]);
 
   const { stats, records } = data;
 
@@ -56,13 +61,29 @@ export default function MyAttendance() {
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Progress Card */}
       {stats.total > 0 && (
-        <div className="section" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="progress-bar-wrapper" style={{ flex: 1 }}>
-            <div className="progress-bar-fill" style={{ width: `${stats.rate}%` }} />
+        <div className="card section">
+          <div className="card-header">
+            <h3 className="card-header-title">Overall Progress</h3>
+            <span className="badge badge-outline">{stats.present}/{stats.total} days</span>
           </div>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-muted)' }}>{stats.rate}% Present</span>
+          <div className="card-body">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div className="progress-bar-wrapper" style={{ flex: 1 }}>
+                <div className="progress-bar-fill" style={{ width: `${stats.rate}%` }} />
+              </div>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text)', whiteSpace: 'nowrap' }}>
+                {stats.rate}%
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+              <span>✅ {stats.present} Present</span>
+              <span>❌ {stats.absent} Absent</span>
+              <span>⏰ {stats.late} Late</span>
+              <span>📋 {stats.total} Total</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -72,9 +93,7 @@ export default function MyAttendance() {
       ) : (
         <div className="table-wrapper">
           <table className="table table-responsive">
-            <thead>
-              <tr><th>Date</th><th>Class</th><th>Status</th></tr>
-            </thead>
+            <thead><tr><th>Date</th><th>Class</th><th>Status</th></tr></thead>
             <tbody>
               {records.length === 0 ? (
                 <tr><td colSpan="3">

@@ -1,35 +1,41 @@
 /* ─────────────────────────────────────────────────────────────
-   LAYOUT — Sidebar + Header + Main Content shell
+   LAYOUT — Main Shell Architecture
    ───────────────────────────────────────────────────────────── */
 
 .layout {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  background-color: var(--color-bg);
+  position: relative;
 }
 
 .layout-main {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 260px;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  transition: margin-left var(--transition-slow);
+  width: calc(100% - 260px);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .layout-content {
   flex: 1;
-  padding: var(--space-6);
+  padding: 32px;
   overflow-x: hidden;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
 }
 
+/* Tablet & Mobile Breakpoint */
 @media (max-width: 1024px) {
   .layout-main {
-    margin-left: 0;
+    margin-left: 0 !important;
+    width: 100% !important;
   }
-}
-
-@media (max-width: 640px) {
   .layout-content {
-    padding: var(--space-4);
+    padding: 20px 16px;
   }
 }

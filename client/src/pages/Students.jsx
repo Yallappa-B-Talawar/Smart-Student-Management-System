@@ -9,6 +9,7 @@ import {
 } from 'react-icons/hi';
 import { studentsAPI, organizationsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import '../components/ui/Components.css';
 
 const emptyForm = { name: '', email: '', rollNo: '', class: '', phone: '', address: '', section: '', parentName: '', parentPhone: '', gender: '', organizationId: '', organizationCode: '' };
@@ -17,22 +18,32 @@ export default function Students() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const canEdit = user?.role === 'admin' || user?.role === 'teacher';
+  const location = useLocation();
+  const [search, setSearch] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('q') || '';
+  });
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterPeriod, setFilterPeriod] = useState('all');
+  const [filterOrg, setFilterOrg] = useState('');
   const [classes, setClasses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ ...emptyForm });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
-  const [toast, setToast] = useState(null);
+  const { showToast } = useToast();
   const [viewStudent, setViewStudent] = useState(null);
   const [orgs, setOrgs] = useState([]);
   const [orgsLoading, setOrgsLoading] = useState(true);
-  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q') || '';
+    setSearch(q);
+  }, [location.search]);
 
   useEffect(() => {
     if (location.state?.openAdd) {
@@ -42,48 +53,49 @@ export default function Students() {
   }, [location.state]);
 
   useEffect(() => {
-    if (isAdmin) {
-      organizationsAPI.getAll()
-        .then(res => setOrgs(res.data.data || []))
-        .catch(() => setOrgs([]))
-        .finally(() => setOrgsLoading(false));
-    }
-  }, [isAdmin]);
+    organizationsAPI.getAll()
+      .then(res => setOrgs(res.data.data || []))
+      .catch(() => setOrgs([]))
+      .finally(() => setOrgsLoading(false));
+  }, []);
 
-  const fetchStudents = useCallback(async () => {
-    setLoading(true);
+  const fetchStudents = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = {};
       if (search) params.search = search;
       if (filterClass) params.class = filterClass;
       if (filterPeriod !== 'all') params.period = filterPeriod;
+      if (filterOrg) params.organization = filterOrg;
       const res = await studentsAPI.getAll(params);
       setStudents(res.data.data.students || []);
     } catch {
       setStudents([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [search, filterClass, filterPeriod]);
+  }, [search, filterClass, filterPeriod, filterOrg]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
-  // Auto-refresh every 30 seconds for live updates
+  // Auto-refresh every 30 seconds for live updates (silent & visibility-aware)
   useEffect(() => {
-    const interval = setInterval(fetchStudents, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchStudents(true);
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchStudents]);
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
     studentsAPI.getStats().then(res => {
       setClasses(res.data.data.classes || []);
     }).catch(() => {});
-  }, [students]);
+  }, []);
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+
 
   const openCreateForm = () => {
     setEditingId(null);
@@ -175,6 +187,27 @@ export default function Students() {
 
   const f = (key, val) => setFormData(p => ({ ...p, [key]: val }));
 
+  const orgOptions = Array.from(
+    new Set([
+      ...orgs.map(o => o.name),
+      ...students.map(s => typeof s.organization === 'object' ? s.organization?.name : s.organization).filter(Boolean)
+    ])
+  ).sort();
+
+  const classOptions = Array.from(
+    new Set([
+      ...classes,
+      ...students.map(s => s.class).filter(Boolean)
+    ])
+  ).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }));
+
+  const displayStudents = students.filter(s => {
+    if (!filterOrg) return true;
+    const orgName = typeof s.organization === 'object' ? s.organization?.name || '' : (s.organization || '');
+    const orgId = typeof s.organization === 'object' ? s.organization?._id || '' : (s.organization || '');
+    return orgName === filterOrg || orgId === filterOrg;
+  });
+
   return (
     <div>
       <div className="section-header">
@@ -182,7 +215,7 @@ export default function Students() {
           <h2 className="section-title">
             Students
             <span className="badge badge-outline" style={{ marginLeft: '10px', fontSize: '14px', verticalAlign: 'middle' }}>
-              {students.length}
+              {displayStudents.length}
             </span>
           </h2>
           <p className="section-subtitle">
@@ -299,39 +332,47 @@ export default function Students() {
           <input className="form-input" type="search" placeholder="Search by name or roll no..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} aria-label="Search students" />
         </div>
 
-        {/* Class filter — no "All" button, default shows all */}
-        {classes.length > 0 && (
-          <div className="tabs">
-            {classes.map(cls => (
-              <button
-                key={cls}
-                className={`tab-btn ${filterClass === cls ? 'active' : ''}`}
-                onClick={() => setFilterClass(prev => prev === cls ? '' : cls)}
-                title={filterClass === cls ? 'Click to clear class filter' : `Filter by class ${cls}`}
-              >
-                {cls}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Period filter */}
-        <div className="tabs" style={{ marginLeft: 'auto' }}>
-          {[
-            { key: 'all',   label: 'All Time' },
-            { key: 'today', label: 'Today' },
-            { key: 'week',  label: 'This Week' },
-            { key: 'month', label: 'This Month' },
-          ].map(p => (
-            <button
-              key={p.key}
-              className={`tab-btn ${filterPeriod === p.key ? 'active' : ''}`}
-              onClick={() => setFilterPeriod(p.key)}
-            >
-              {p.label}
-            </button>
+        {/* Organization Filter Dropdown */}
+        <select
+          className="form-select"
+          value={filterOrg}
+          onChange={e => setFilterOrg(e.target.value)}
+          style={{ width: 'auto', minWidth: '180px' }}
+          aria-label="Filter by organization"
+        >
+          <option value="">🏫 All Organizations</option>
+          {orgOptions.map(orgName => (
+            <option key={orgName} value={orgName}>{orgName}</option>
           ))}
-        </div>
+        </select>
+
+        {/* Class Filter Dropdown */}
+        <select
+          className="form-select"
+          value={filterClass}
+          onChange={e => setFilterClass(e.target.value)}
+          style={{ width: 'auto', minWidth: '150px' }}
+          aria-label="Filter by class"
+        >
+          <option value="">📚 All Classes</option>
+          {classOptions.map(cls => (
+            <option key={cls} value={cls}>Class {cls}</option>
+          ))}
+        </select>
+
+        {/* Period Filter Dropdown */}
+        <select
+          className="form-select"
+          value={filterPeriod}
+          onChange={e => setFilterPeriod(e.target.value)}
+          style={{ width: 'auto', minWidth: '140px' }}
+          aria-label="Filter by time period"
+        >
+          <option value="all">📅 All Time</option>
+          <option value="today">⚡ Today</option>
+          <option value="week">🗓️ This Week</option>
+          <option value="month">📆 This Month</option>
+        </select>
       </div>
 
       {/* ── Table ── */}
@@ -344,15 +385,15 @@ export default function Students() {
               <tr><th>Roll No</th><th>Name</th><th>School</th><th>Class</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {students.length === 0 ? (
+              {displayStudents.length === 0 ? (
                 <tr><td colSpan="8">
                   <div className="empty-state">
                     <div className="empty-state-icon">👩‍🎓</div>
                     <div className="empty-state-title">No students found</div>
-                    <p className="empty-state-text">Click "Add Student" to create the first record.</p>
+                    <p className="empty-state-text">{filterOrg ? `No student records found for "${filterOrg}".` : 'Click "Add Student" to create the first record.'}</p>
                   </div>
                 </td></tr>
-              ) : students.map(s => (
+              ) : displayStudents.map(s => (
                 <tr key={s._id}>
                   <td data-label="Roll No"><strong>{s.rollNo}</strong></td>
                   <td data-label="Name">{s.name}</td>
@@ -406,8 +447,6 @@ export default function Students() {
           </div>
         </div>
       )}
-
-      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }

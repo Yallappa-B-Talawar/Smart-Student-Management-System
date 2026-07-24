@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Icon from '../ui/Icon';
 import {
   HiOutlineViewGrid,
   HiOutlineUserGroup,
@@ -56,10 +57,11 @@ export default function Sidebar({ isOpen, onClose }) {
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`} role="navigation" aria-label="Main Navigation">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon" aria-hidden="true">S</div>
+          <div className="sidebar-logo-icon" aria-hidden="true">
+            <Icon size={32} color="var(--color-sidebar-text)" />
+          </div>
           <div className="sidebar-logo-text">
-            SSMS
-            <span>Student Management</span>
+            STUDEXA
           </div>
         </div>
 
@@ -95,7 +97,7 @@ export default function Sidebar({ isOpen, onClose }) {
               </div>
             </div>
           )}
-          <button className="sidebar-link" onClick={handleLogout} style={{ width: '100%', color: '#FF3E6C' }}>
+          <button className="sidebar-link sidebar-logout-btn" onClick={handleLogout} style={{ width: '100%' }}>
             <span className="sidebar-link-icon"><HiOutlineLogout /></span>
             Logout
           </button>

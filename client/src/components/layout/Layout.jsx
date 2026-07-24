@@ -9,6 +9,8 @@ const pageTitles = {
   '/students': 'Students',
   '/teachers': 'Teachers',
   '/attendance': 'Attendance',
+  '/my-attendance': 'My Attendance',
+  '/organizations': 'Organizations',
   '/settings': 'Settings',
 };
 
